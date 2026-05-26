@@ -146,17 +146,20 @@ st.markdown(
     }
 
     /* ══ TEXT INPUT ═══════════════════════════════════════════════════════ */
-    [data-testid="stTextInput"] input {
+    [data-testid="stTextInput"] input,
+    [data-testid="stTextArea"] textarea {
         border-radius: 10px !important;
         border: 1.5px solid #e2e8f0 !important;
         font-size: 0.95rem !important;
         padding: 10px 14px !important;
-        background: white !important;
+        background: #f8fafc !important;
         transition: border-color 0.15s, box-shadow 0.15s !important;
     }
-    [data-testid="stTextInput"] input:focus {
+    [data-testid="stTextInput"] input:focus,
+    [data-testid="stTextArea"] textarea:focus {
         border-color: #2563eb !important;
         box-shadow: 0 0 0 3px rgba(37,99,235,0.1) !important;
+        background: #f1f5f9 !important;
     }
 
     /* ══ BORDERED CONTAINERS (st.container border=True) ══════════════════ */
