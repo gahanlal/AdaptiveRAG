@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import numpy as np
+import tiktoken
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Callable, Optional
 
@@ -9,6 +10,8 @@ from sentence_transformers import SentenceTransformer
 
 from backend.models import AdaptiveChunk, RetrievedDoc
 from backend.rag.indexer import MultiIndex
+
+_enc = tiktoken.get_encoding("cl100k_base")
 
 TOP_K = 5
 
@@ -231,3 +234,63 @@ def retrieve_multi(
 
     merged = sorted(seen.values(), key=lambda x: x.score, reverse=True)
     return merged[:top_k]
+
+
+# ---------------------------------------------------------------------------
+# Context expansion — parent-child / neighbor stitching
+# ---------------------------------------------------------------------------
+
+def expand_with_neighbors(
+    index: MultiIndex,
+    docs: list[RetrievedDoc],
+    token_budget: int = 600,
+) -> list[RetrievedDoc]:
+    """
+    Expand each retrieved chunk by prepending/appending its immediate
+    section-neighbors (prev + next chunk within the same section).
+
+    Budget is per-doc: the original chunk always fits; neighbors are added
+    only if they stay within *token_budget* tokens total.
+    This implements the "dynamic context expansion" / "parent-child retrieval"
+    pattern without changing the chunk storage structure.
+    """
+    expanded: list[RetrievedDoc] = []
+
+    for doc in docs:
+        prev_id, next_id = index.chunk_neighbors.get(doc.chunk_id, (None, None))
+
+        base_tokens = len(_enc.encode(doc.text))
+        parts: list[str] = [doc.text]
+        used = base_tokens
+
+        # Prepend previous chunk if it fits
+        if prev_id:
+            prev_chunk = index.chunk_by_id.get(prev_id)
+            if prev_chunk:
+                prev_tokens = len(_enc.encode(prev_chunk.text))
+                if used + prev_tokens <= token_budget:
+                    parts.insert(0, prev_chunk.text)
+                    used += prev_tokens
+
+        # Append next chunk if it fits
+        if next_id:
+            next_chunk = index.chunk_by_id.get(next_id)
+            if next_chunk:
+                next_tokens = len(_enc.encode(next_chunk.text))
+                if used + next_tokens <= token_budget:
+                    parts.append(next_chunk.text)
+                    used += next_tokens
+
+        expanded_text = "\n\n".join(parts) if len(parts) > 1 else doc.text
+
+        expanded.append(
+            RetrievedDoc(
+                chunk_id=doc.chunk_id,
+                text=expanded_text,
+                section_title=doc.section_title,
+                score=doc.score,
+                source_index=doc.source_index,
+            )
+        )
+
+    return expanded

@@ -68,6 +68,9 @@ class MultiIndex:
     graph: nx.Graph = field(default_factory=nx.Graph)
     # Quick lookup by chunk_id
     chunk_by_id: dict[str, AdaptiveChunk] = field(default_factory=dict)
+    # Parent-child neighbor map: chunk_id → (prev_chunk_id | None, next_chunk_id | None)
+    # Neighbors are within the same section, ordered by chunk index.
+    chunk_neighbors: dict[str, tuple] = field(default_factory=dict)
 
 
 # ---------------------------------------------------------------------------
@@ -139,6 +142,15 @@ def build_indexes(session_id: str, chunks: list[AdaptiveChunk]) -> MultiIndex:
 
     chunk_by_id = {c.chunk_id: c for c in chunks}
 
+    # --- Neighbor map (parent-child / adjacent chunks within section) ---
+    chunk_neighbors: dict[str, tuple] = {}
+    for section_chunks in structural.values():
+        ordered = sorted(section_chunks, key=lambda c: c.index)
+        for i, c in enumerate(ordered):
+            prev_id = ordered[i - 1].chunk_id if i > 0 else None
+            next_id = ordered[i + 1].chunk_id if i < len(ordered) - 1 else None
+            chunk_neighbors[c.chunk_id] = (prev_id, next_id)
+
     mi = MultiIndex(
         session_id=session_id,
         vector=vector_store,
@@ -146,6 +158,7 @@ def build_indexes(session_id: str, chunks: list[AdaptiveChunk]) -> MultiIndex:
         metadata=metadata,
         graph=graph,
         chunk_by_id=chunk_by_id,
+        chunk_neighbors=chunk_neighbors,
     )
     _sessions[session_id] = mi
     return mi

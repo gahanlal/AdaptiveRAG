@@ -271,6 +271,30 @@ def _score_dcc(chunks: list[str], embedder: SentenceTransformer, window: int = I
 
 
 # ---------------------------------------------------------------------------
+# Density / variance measurement
+# ---------------------------------------------------------------------------
+
+def _compute_segment_variance(text: str, embedder: SentenceTransformer) -> float:
+    """
+    Measure semantic variance of a segment.
+    High variance (0.5–1.0) = diverse topics, dense with transitions → prefer smaller chunks.
+    Low variance  (0.0–0.3) = coherent single topic               → prefer larger chunks.
+    Returns a float in [0.0, 1.0].
+    """
+    sentences = _split_sentences(text)
+    if len(sentences) < 4:
+        return 0.2   # short segments: default to neutral
+    sample = sentences[:24]  # cap for efficiency
+    embs = embedder.encode(sample, normalize_embeddings=True)
+    n = len(embs)
+    # Mean pairwise cosine similarity across all sentence pairs
+    sims = np.dot(embs, embs.T)
+    upper = [sims[i][j] for i in range(n) for j in range(i + 1, n)]
+    mean_sim = float(np.mean(upper)) if upper else 1.0
+    return float(np.clip(1.0 - mean_sim, 0.0, 1.0))
+
+
+# ---------------------------------------------------------------------------
 # Candidate strategies — mirrors the ekimetrics paper's strategy pool
 # ---------------------------------------------------------------------------
 _STRATEGIES: list[tuple[str, RecursiveSplitter]] = [
@@ -297,10 +321,14 @@ _STRATEGIES: list[tuple[str, RecursiveSplitter]] = [
 # ---------------------------------------------------------------------------
 
 def _select_best_strategy(
-    text: str, embedder: SentenceTransformer
+    text: str,
+    embedder: SentenceTransformer,
+    variance: float = 0.3,
 ) -> tuple[str, list[str], dict[str, dict[str, float]]]:
     """
     Try all strategies on *text*; score each with SC + ICC + DCC.
+    Applies a density-aware bias: high-variance segments prefer smaller
+    chunks; low-variance segments prefer larger ones.
     Returns (winning_strategy_name, winning_chunks, all_scores_dict).
     """
     scores_map: dict[str, dict[str, float]] = {}
@@ -319,12 +347,21 @@ def _select_best_strategy(
         dcc = _score_dcc(raw, embedder)
         combined = (sc + icc + dcc) / 3.0
 
+        # Density-aware bias:
+        #   high variance → boost small-chunk strategies
+        #   low variance  → boost large-chunk strategies
+        if "256" in name or "small" in name:
+            combined *= 1.0 + 0.25 * variance          # up to +25% for diverse text
+        elif "512" in name:
+            combined *= 1.0 + 0.25 * (1.0 - variance)  # up to +25% for coherent text
+
         scores_map[name] = {
             "sc": round(sc, 4),
             "icc": round(icc, 4),
             "dcc": round(dcc, 4),
             "combined": round(combined, 4),
             "n_chunks": len(raw),
+            "variance_bias": round(variance, 3),
         }
 
         if combined > best_combined:
@@ -337,7 +374,7 @@ def _select_best_strategy(
         best_name = "fallback_hard_split"
         best_chunks = RecursiveSplitter(512, 0, 40, "to_chunk_size").split_text(text)
         best_chunks = [c for c in best_chunks if c.strip()] or [text]
-        scores_map[best_name] = {"sc": 0.0, "icc": 0.0, "dcc": 0.0, "combined": 0.0, "n_chunks": len(best_chunks)}
+        scores_map[best_name] = {"sc": 0.0, "icc": 0.0, "dcc": 0.0, "combined": 0.0, "n_chunks": len(best_chunks), "variance_bias": 0.0}
 
     return best_name, best_chunks, scores_map
 
@@ -355,7 +392,8 @@ def chunk_segment(
         return [], {}
 
     emb = embedder if embedder is not None else _get_embedder()
-    best_name, raw_chunks, scores = _select_best_strategy(segment.text, emb)
+    variance = _compute_segment_variance(segment.text, emb)
+    best_name, raw_chunks, scores = _select_best_strategy(segment.text, emb, variance=variance)
 
     chunks: list[AdaptiveChunk] = []
     for i, text in enumerate(raw_chunks):

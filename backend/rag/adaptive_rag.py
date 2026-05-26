@@ -58,6 +58,7 @@ class RAGState(TypedDict):
     # Retrieval output
     retrieved_docs: list[RetrievedDoc]
     reranked_docs: list[RetrievedDoc]
+    refinement_count: int   # tracks retry cycles; capped at 1 to prevent loops
 
     # Generation output
     context: str
@@ -248,25 +249,24 @@ def custom_retrieval_node(state: RAGState) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Node 5c: Custom Retriever — runs user-selected indexes in parallel
+# Node 5d: Context Expander — neighbor stitching (parent-child retrieval)
+# Runs AFTER retrieval, BEFORE reranking.
+# Each retrieved chunk is expanded to include its immediate section-neighbors
+# within a token budget, giving the LLM richer surrounding context.
 # ---------------------------------------------------------------------------
 
-def custom_retrieval_node(state: RAGState) -> dict:
+def context_expansion_node(state: RAGState) -> dict:
     multi_index = idx_module.get_index(state["session_id"])
-    if multi_index is None:
-        return {"retrieved_docs": [], "pipeline_steps": _append_step(state, "CustomRetriever[no_index]")}
+    docs = state.get("retrieved_docs", [])
+    if multi_index is None or not docs:
+        return {"pipeline_steps": _append_step(state, "ContextExpansion[skip]")}
 
-    selected = [s.strip() for s in state.get("retrieval_mode", "vector").split(",") if s.strip()]
-    docs = retrieve_custom(
-        index=multi_index,
-        query=state["query"],
-        entities=state["entities"],
-        selected=selected,
-    )
-    label = "+".join(selected) if selected else "vector"
+    from backend.rag.retriever import expand_with_neighbors
+    expanded = expand_with_neighbors(index=multi_index, docs=docs, token_budget=600)
+    expanded_count = sum(1 for o, e in zip(docs, expanded) if len(e.text) > len(o.text))
     return {
-        "retrieved_docs": docs,
-        "pipeline_steps": _append_step(state, f"CustomRetriever[{label}]"),
+        "retrieved_docs": expanded,
+        "pipeline_steps": _append_step(state, f"ContextExpansion[expanded={expanded_count}/{len(docs)}]"),
     }
 
 
@@ -283,6 +283,58 @@ def reranker_node(state: RAGState) -> dict:
     return {
         "reranked_docs": reranked,
         "pipeline_steps": _append_step(state, f"LLMReranker[top_{len(reranked)}]"),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Node 6b: Retrieval Refiner — recursive retrieval when confidence is low
+# Reformulates query using extracted entities, re-retrieves, merges results.
+# Only runs once (refinement_count gate prevents loops).
+# ---------------------------------------------------------------------------
+
+def retrieval_refinement_node(state: RAGState) -> dict:
+    multi_index = idx_module.get_index(state["session_id"])
+    reranked = state.get("reranked_docs", [])
+    if multi_index is None:
+        return {"pipeline_steps": _append_step(state, "RetrievalRefinement[no_index]")}
+
+    entities = state.get("entities", [])
+    original_query = state["query"]
+    # Enrich query with extracted entities for a more targeted second pass
+    if entities:
+        refined_query = f"{original_query} {' '.join(entities[:3])}"
+    else:
+        refined_query = original_query
+
+    mode = state.get("retrieval_mode", "single")
+    try:
+        if mode == "single":
+            new_docs = retrieve_single(
+                multi_index, refined_query, state.get("intent", "semantic"), entities
+            )
+        elif mode == "multi":
+            new_docs = retrieve_multi(multi_index, refined_query, entities)
+        else:
+            selected = [s.strip() for s in mode.split(",") if s.strip()]
+            new_docs = retrieve_custom(multi_index, refined_query, entities, selected)
+
+        # Merge original reranked + new results; keep highest score per chunk
+        seen: dict[str, RetrievedDoc] = {d.chunk_id: d for d in reranked}
+        for d in new_docs:
+            if d.chunk_id not in seen or d.score > seen[d.chunk_id].score:
+                seen[d.chunk_id] = d
+        merged = sorted(seen.values(), key=lambda d: d.score, reverse=True)[:8]
+    except Exception:
+        merged = reranked
+
+    return {
+        "retrieved_docs": merged,
+        "reranked_docs": [],          # cleared so reranker re-scores the merged set
+        "refinement_count": state.get("refinement_count", 0) + 1,
+        "pipeline_steps": _append_step(
+            state,
+            f"RetrievalRefinement[q={refined_query[:60]},merged={len(merged)}]"
+        ),
     }
 
 
@@ -326,7 +378,7 @@ def generator_node(state: RAGState) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Conditional edge: single vs multi retrieval mode
+# Conditional edges
 # ---------------------------------------------------------------------------
 
 def _route_retrieval(state: RAGState) -> str:
@@ -336,6 +388,20 @@ def _route_retrieval(state: RAGState) -> str:
     if mode == "multi":
         return "multi"
     return "custom"
+
+
+def _should_refine(state: RAGState) -> str:
+    """
+    After reranking: if top score is below threshold AND we haven't retried yet,
+    trigger a recursive retrieval refinement pass.  Otherwise proceed.
+    """
+    reranked = state.get("reranked_docs", [])
+    if state.get("refinement_count", 0) >= 1:
+        return "continue"           # already retried once — accept whatever we have
+    if not reranked:
+        return "continue"
+    top_score = reranked[0].score if reranked else 0.0
+    return "refine" if top_score < 0.3 else "continue"
 
 
 # ---------------------------------------------------------------------------
@@ -352,30 +418,40 @@ def _build_graph() -> StateGraph:
     builder.add_node("single_retriever", single_retrieval_node)
     builder.add_node("multi_retriever", multi_retrieval_node)
     builder.add_node("custom_retriever", custom_retrieval_node)
+    builder.add_node("context_expander", context_expansion_node)
     builder.add_node("reranker", reranker_node)
+    builder.add_node("retrieval_refiner", retrieval_refinement_node)
     builder.add_node("context_assembler", context_assembler_node)
     builder.add_node("generator", generator_node)
 
-    # Linear flow up to retrieval router
+    # Linear ingest flow
     builder.add_edge(START, "structural_parser")
     builder.add_edge("structural_parser", "adaptive_chunker")
     builder.add_edge("adaptive_chunker", "multi_index_builder")
     builder.add_edge("multi_index_builder", "query_understanding")
 
-    # Conditional branch: single vs multi vs custom retrieval
+    # Conditional retrieval branch
     builder.add_conditional_edges(
         "query_understanding",
         _route_retrieval,
         {"single": "single_retriever", "multi": "multi_retriever", "custom": "custom_retriever"},
     )
 
-    # All branches converge at reranker
-    builder.add_edge("single_retriever", "reranker")
-    builder.add_edge("multi_retriever", "reranker")
-    builder.add_edge("custom_retriever", "reranker")
+    # All branches → context expansion → reranker
+    builder.add_edge("single_retriever", "context_expander")
+    builder.add_edge("multi_retriever", "context_expander")
+    builder.add_edge("custom_retriever", "context_expander")
+    builder.add_edge("context_expander", "reranker")
+
+    # Conditional: refine (low confidence) or continue
+    builder.add_conditional_edges(
+        "reranker",
+        _should_refine,
+        {"refine": "retrieval_refiner", "continue": "context_assembler"},
+    )
+    builder.add_edge("retrieval_refiner", "reranker")  # loop back for one retry
 
     # Final linear flow
-    builder.add_edge("reranker", "context_assembler")
     builder.add_edge("context_assembler", "generator")
     builder.add_edge("generator", END)
 
@@ -404,7 +480,9 @@ def _get_query_graph():
     builder.add_node("single_retriever", single_retrieval_node)
     builder.add_node("multi_retriever", multi_retrieval_node)
     builder.add_node("custom_retriever", custom_retrieval_node)
+    builder.add_node("context_expander", context_expansion_node)
     builder.add_node("reranker", reranker_node)
+    builder.add_node("retrieval_refiner", retrieval_refinement_node)
     builder.add_node("context_assembler", context_assembler_node)
     builder.add_node("generator", generator_node)
 
@@ -414,10 +492,16 @@ def _get_query_graph():
         _route_retrieval,
         {"single": "single_retriever", "multi": "multi_retriever", "custom": "custom_retriever"},
     )
-    builder.add_edge("single_retriever", "reranker")
-    builder.add_edge("multi_retriever", "reranker")
-    builder.add_edge("custom_retriever", "reranker")
-    builder.add_edge("reranker", "context_assembler")
+    builder.add_edge("single_retriever", "context_expander")
+    builder.add_edge("multi_retriever", "context_expander")
+    builder.add_edge("custom_retriever", "context_expander")
+    builder.add_edge("context_expander", "reranker")
+    builder.add_conditional_edges(
+        "reranker",
+        _should_refine,
+        {"refine": "retrieval_refiner", "continue": "context_assembler"},
+    )
+    builder.add_edge("retrieval_refiner", "reranker")
     builder.add_edge("context_assembler", "generator")
     builder.add_edge("generator", END)
 
