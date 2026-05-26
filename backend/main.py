@@ -115,27 +115,40 @@ def health():
 
 @app.post("/api/ingest", response_model=IngestResponse)
 async def ingest(
-    file: Optional[UploadFile] = File(default=None),
+    files: list[UploadFile] = File(default=[]),
     raw_text: Optional[str] = Form(default=None),
     filename: str = Form(default="document.txt"),
 ):
     """
-    Accept a file upload OR raw pasted text.
+    Accept one or more file uploads OR raw pasted text.
+    Multiple files are concatenated into a single indexed document.
     Returns side-by-side Simple and Adaptive chunk previews.
     """
-    # --- Extract text ---
-    if file is not None and getattr(file, 'filename', None):
-        data = await file.read()
-        fname = file.filename
-        text = _extract_text(fname, data)
-    elif raw_text:
-        fname = filename
-        text = raw_text
+    # --- Extract text from each uploaded file ---
+    texts: list[tuple[str, str]] = []
+    for f in files:
+        if f and getattr(f, "filename", None):
+            data = await f.read()
+            texts.append((f.filename, _extract_text(f.filename, data)))
+
+    if not texts and raw_text and raw_text.strip():
+        texts.append((filename, raw_text))
+
+    if not texts:
+        raise HTTPException(status_code=422, detail="Provide at least one file or raw_text.")
+
+    if len(texts) == 1:
+        fname, text = texts[0]
     else:
-        raise HTTPException(status_code=422, detail="Provide either a file or raw_text.")
+        fname = (
+            f"{len(texts)} files: "
+            + ", ".join(n for n, _ in texts[:3])
+            + (" …" if len(texts) > 3 else "")
+        )
+        text = "\n\n".join(f"=== {n} ===\n\n{t}" for n, t in texts)
 
     if not text.strip():
-        raise HTTPException(status_code=422, detail="Document appears to be empty.")
+        raise HTTPException(status_code=422, detail="All uploaded documents appear to be empty.")
 
     session_id = uuid.uuid4().hex
 

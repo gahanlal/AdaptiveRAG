@@ -278,6 +278,161 @@ def _render_structure_tree(nodes, chunks_by_id: dict, depth: int = 0) -> None:
                 _render_structure_tree(node["children"], chunks_by_id, depth + 1)
 
 
+def _structure_sunburst(tree: list, doc_name: str) -> "object | None":
+    """Return a plotly Sunburst chart of the document's section hierarchy."""
+    try:
+        import plotly.graph_objects as go
+    except ImportError:
+        return None
+
+    ids:     list[str] = ["root"]
+    labels:  list[str] = [doc_name[:40]]
+    parents: list[str] = [""]
+    values:  list[int] = [0]
+    colors:  list[str] = ["#3b82f6"]
+    level_colors = {1: "#6366f1", 2: "#8b5cf6", 3: "#06b6d4", 4: "#10b981"}
+
+    def walk(nodes: list, parent_id: str) -> None:
+        for n in nodes:
+            nid = (parent_id + "/" + n["title"])[:80]
+            ids.append(nid)
+            labels.append(n["title"][:40])
+            parents.append(parent_id)
+            values.append(max(len(n.get("chunk_ids", [])), 1))
+            colors.append(level_colors.get(n.get("level", 1), "#64748b"))
+            if n.get("children"):
+                walk(n["children"], nid)
+
+    walk(tree, "root")
+    if len(ids) < 2:
+        return None
+
+    fig = go.Figure(go.Sunburst(
+        ids=ids, labels=labels, parents=parents, values=values,
+        marker=dict(colors=colors, line=dict(color="white", width=1)),
+        branchvalues="total",
+        hovertemplate="<b>%{label}</b><br>Chunks: %{value}<extra></extra>",
+        textfont=dict(size=11),
+    ))
+    fig.update_layout(
+        margin=dict(t=0, l=0, r=0, b=0),
+        height=380,
+        paper_bgcolor="rgba(0,0,0,0)",
+    )
+    return fig
+
+
+def _make_pipeline_figure(rag_type: str, steps: list) -> "object | None":
+    """
+    Return a plotly Figure showing the full pipeline graph.
+    Nodes whose name appears in *steps* are highlighted in blue; others greyed out.
+
+    Simple RAG  — horizontal left-to-right linear flow.
+    Adaptive RAG — top-down branching graph with optional refinement loop.
+    """
+    try:
+        import plotly.graph_objects as go
+    except ImportError:
+        return None
+
+    visited = " ".join(s.lower() for s in steps)
+
+    def hit(*kws: str) -> bool:
+        return any(k.lower() in visited for k in kws)
+
+    # Colour palette
+    A_FILL, A_LINE, A_TEXT = "#dbeafe", "#1d4ed8", "#1e3a8a"
+    I_FILL, I_LINE, I_TEXT = "#f8fafc",  "#e2e8f0", "#94a3b8"
+    E_COLOR = "#cbd5e1"
+    W, H = 0.9, 0.32   # half-width / half-height of each box
+
+    if rag_type == "simple":
+        # (id, x, y, display-label, match-keywords)
+        node_defs = [
+            ("in",  0.0, 0, "📄 Input",              []),
+            ("ch",  1.8, 0, "Fixed Chunker\n512 tok", ["fixedchunker"]),
+            ("fa",  3.6, 0, "FAISS\nVector Index",    ["faiss"]),
+            ("ge",  5.4, 0, "Generator",              ["generator"]),
+            ("ou",  7.2, 0, "💬 Response",            ["generator"]),  # lit when generator ran
+        ]
+        edge_defs = [("in","ch",""), ("ch","fa",""), ("fa","ge",""), ("ge","ou","")]
+        xrng, yrng, fig_h = [-0.7, 7.9], [-0.7, 0.7], 160
+    else:
+        node_defs = [
+            ("qu",  3.0, 6.2, "Query\nUnderstanding",  ["queryunderstanding"]),
+            ("sr",  0.6, 5.0, "Single\nRetriever",     ["singleretriever"]),
+            ("mr",  3.0, 5.0, "Multi\nRetriever",      ["multiretriever"]),
+            ("cr",  5.4, 5.0, "Custom\nRetriever",     ["customretriever"]),
+            ("ce",  3.0, 3.8, "Context\nExpander",     ["contextexpansion"]),
+            ("rk",  3.0, 2.6, "Reranker",              ["llmreranker"]),
+            ("rf",  0.8, 1.4, "Retrieval\nRefiner",    ["retrievalrefinement"]),
+            ("ca",  5.2, 1.4, "Context\nAssembler",    ["contextassembler"]),
+            ("ge",  5.2, 0.2, "Generator",             ["generator"]),
+            ("ou",  5.2,-1.0, "💬 Response",           ["generator"]),
+        ]
+        edge_defs = [
+            ("qu","sr",""), ("qu","mr",""), ("qu","cr",""),
+            ("sr","ce",""), ("mr","ce",""), ("cr","ce",""),
+            ("ce","rk",""),
+            ("rk","rf","low score"), ("rk","ca","confident"),
+            ("rf","rk","retry ↑"),
+            ("ca","ge",""), ("ge","ou",""),
+        ]
+        xrng, yrng, fig_h = [-0.3, 7.1], [-1.6, 7.1], 540
+
+    pos = {nid: (x, y) for nid, x, y, *_ in node_defs}
+    fig = go.Figure()
+
+    # ── Arrow-head edges ─────────────────────────────────────────────────
+    for src_id, dst_id, label in edge_defs:
+        sx, sy = pos[src_id]
+        dx, dy = pos[dst_id]
+        going_up = dy > sy
+        ay_start = sy + H if going_up else sy - H
+        ay_end   = dy - H if going_up else dy + H
+        fig.add_annotation(
+            x=dx, y=ay_end,
+            ax=sx, ay=ay_start,
+            xref="x", yref="y", axref="x", ayref="y",
+            arrowhead=2, arrowsize=0.9, arrowwidth=1.5,
+            arrowcolor=E_COLOR,
+            showarrow=True,
+            text=label,
+            font=dict(size=8, color="#94a3b8"),
+        )
+
+    # ── Node rectangles + labels ─────────────────────────────────────────
+    for nid, x, y, label, kws in node_defs:
+        active = hit(*kws)
+        fig.add_shape(
+            type="rect",
+            x0=x-W, y0=y-H, x1=x+W, y1=y+H,
+            fillcolor=A_FILL if active else I_FILL,
+            line=dict(color=A_LINE if active else I_LINE, width=2.5 if active else 1),
+        )
+        fig.add_annotation(
+            x=x, y=y,
+            text=label.replace("\n", "<br>"),
+            showarrow=False,
+            font=dict(
+                size=9.5,
+                color=A_TEXT if active else I_TEXT,
+                family="'Courier New', monospace",
+            ),
+            xanchor="center", yanchor="middle",
+        )
+
+    fig.update_layout(
+        xaxis=dict(range=xrng, showgrid=False, zeroline=False, showticklabels=False),
+        yaxis=dict(range=yrng, showgrid=False, zeroline=False, showticklabels=False),
+        height=fig_h,
+        margin=dict(l=8, r=8, t=8, b=8),
+        paper_bgcolor="white",
+        plot_bgcolor="white",
+    )
+    return fig
+
+
 # ---------------------------------------------------------------------------
 # Tabs
 # ---------------------------------------------------------------------------
@@ -297,9 +452,10 @@ with tab_doc:
     col_up, col_paste = st.columns([1, 1])
 
     with col_up:
-        uploaded_file = st.file_uploader(
-            "Upload PDF, DOCX, or TXT",
+        uploaded_files = st.file_uploader(
+            "Upload PDF, DOCX, or TXT — multiple files allowed",
             type=["pdf", "docx", "txt"],
+            accept_multiple_files=True,
             label_visibility="collapsed",
         )
 
@@ -313,22 +469,25 @@ with tab_doc:
     process_btn = st.button("⚙️ Process Document", type="primary", width="stretch")
 
     if process_btn:
-        if uploaded_file is None and not pasted_text.strip():
+        if not uploaded_files and not pasted_text.strip():
             st.warning("Please upload a file or paste some text first.")
         else:
             with st.spinner("Processing… (structural parsing + chunking + indexing)"):
                 try:
-                    if uploaded_file is not None:
-                        files = {"file": (uploaded_file.name, uploaded_file.getvalue(), uploaded_file.type or "application/octet-stream")}
+                    if uploaded_files:
+                        request_files = [
+                            ("files", (f.name, f.getvalue(), f.type or "application/octet-stream"))
+                            for f in uploaded_files
+                        ]
                         data = {}
                     else:
-                        # Empty placeholder forces multipart — FastAPI sees file.filename=="" → falls through to raw_text
-                        files = {"file": ("", b"", "text/plain")}
+                        # Empty placeholder so FastAPI receives multipart; falls through to raw_text
+                        request_files = [("files", ("", b"", "text/plain"))]
                         data = {"raw_text": pasted_text, "filename": "pasted_text.txt"}
 
                     resp = requests.post(
                         f"{API_BASE}/ingest",
-                        files=files,
+                        files=request_files,
                         data=data,
                         timeout=120,
                     )
@@ -338,8 +497,14 @@ with tab_doc:
                         st.session_state.session_id = result["session_id"]
                         st.session_state.filename = result["filename"]
                         st.session_state.query_result = None  # reset previous query
+                        n_files = len(uploaded_files)
+                        label = (
+                            f"**{result['filename']}**"
+                            if n_files <= 1
+                            else f"**{n_files} files** ({result['filename']})"
+                        )
                         st.success(
-                            f"Processed **{result['filename']}** — "
+                            f"Processed {label} — "
                             f"{result['word_count']:,} words · "
                             f"{result['char_count']:,} chars"
                         )
@@ -465,6 +630,17 @@ with tab_doc:
                 )
                 _render_structure_tree(structure_tree, ada_chunks_by_id, depth=0)
 
+        # ---- Document Structure Map (plotly sunburst) ----
+        fig_sun = _structure_sunburst(structure_tree, result["filename"])
+        if fig_sun is not None:
+            st.markdown("---")
+            st.subheader("📊 Document Structure Map")
+            st.caption(
+                "Each sector represents a section; size = number of adaptive chunks. "
+                "Hover for details."
+            )
+            st.plotly_chart(fig_sun, use_container_width=True)
+
 
 # ============================================================
 # TAB 2 — Query + Results
@@ -542,8 +718,16 @@ with tab_query:
                 )
                 st.markdown("")
 
-            # Pipeline trace
-            _render_pipeline_trace(qr.get("path_taken", []))
+            # Pipeline trace (badge row) + flow diagram
+            steps = qr.get("path_taken", [])
+            _render_pipeline_trace(steps)
+            st.markdown("")
+
+            # ---- Real-time pipeline flow diagram ----
+            fig_flow = _make_pipeline_figure(st.session_state.rag_type, steps)
+            if fig_flow is not None:
+                with st.expander("🔄 Pipeline Flow  *(blue = executed nodes)*", expanded=True):
+                    st.plotly_chart(fig_flow, use_container_width=True, key="pipeline_flow")
             st.markdown("")
 
             # Response
