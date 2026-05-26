@@ -31,18 +31,31 @@ sys.path.insert(0, ROOT)
 
 def _running_under_streamlit() -> bool:
     """True when this script is executed by Streamlit (cloud or `streamlit run`)."""
-    # Not the OS main thread → always means Streamlit is running us
-    if threading.current_thread() is not threading.main_thread():
-        return True
-    # Streamlit Cloud mounts repos under /mount/src/
+    # Streamlit Cloud: __file__ lives under /mount/src/
+    try:
+        if "/mount/src" in os.path.abspath(__file__):
+            return True
+    except Exception:
+        pass
+    # Fallback: /mount/src directory exists on the filesystem
     if os.path.exists("/mount/src"):
         return True
-    # Streamlit runtime is active (e.g. `streamlit run run.py` locally)
+    # Running via `streamlit run` — streamlit appears in argv[0]
+    if sys.argv and "streamlit" in sys.argv[0]:
+        return True
+    # Not the OS main thread → Streamlit script-runner thread
+    if threading.current_thread() is not threading.main_thread():
+        return True
+    # Active Streamlit runtime (local `streamlit run`)
     try:
         import streamlit.runtime
         return streamlit.runtime.exists()
     except Exception:
         return False
+
+
+# Evaluate once at import time so both branches can reference it
+_IS_CLOUD: bool = _running_under_streamlit()
 
 
 # ---------------------------------------------------------------------------
@@ -105,10 +118,10 @@ def _start_fastapi_thread() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Cloud / Streamlit-runner execution path
+# Cloud / Streamlit-runner execution path  (mutually exclusive with main())
 # ---------------------------------------------------------------------------
 
-if _running_under_streamlit():
+if _IS_CLOUD:
     _inject_streamlit_secrets()
     # Guard against re-starting on every Streamlit rerun
     if not os.environ.get("_FASTAPI_THREAD_STARTED"):
@@ -123,10 +136,10 @@ if _running_under_streamlit():
 
 
 # ---------------------------------------------------------------------------
-# Local development path  (python run.py)
+# Local development path  (python run.py) — skipped entirely on cloud
 # ---------------------------------------------------------------------------
 
-def main() -> None:
+elif __name__ == "__main__":
     import signal
     import subprocess
     from dotenv import dotenv_values
@@ -189,7 +202,3 @@ def main() -> None:
             api_proc.terminate()
             break
         time.sleep(1)
-
-
-if __name__ == "__main__":
-    main()
