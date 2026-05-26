@@ -145,12 +145,16 @@ st.markdown(
 
     /* ══ UPLOAD ZONE ══════════════════════════════════════════════════════ */
     [data-testid="stFileUploader"] > div {
-        border: 2px dashed #cbd5e1 !important;
+        border: 2px dashed #475569 !important;
         border-radius: 14px !important;
+        background: #1e293b !important;
     }
     [data-testid="stFileUploader"] > div:hover {
-        border-color: #2563eb !important;
-        background: #eff6ff !important;
+        border-color: #3b82f6 !important;
+        background: #1e3a5f !important;
+    }
+    [data-testid="stFileUploader"] * {
+        color: #e2e8f0 !important;
     }
 
     /* ══ BORDERED CONTAINERS ══════════════════════════════════════════════ */
@@ -485,15 +489,19 @@ def _structure_sunburst(tree: list, doc_name: str, chunks: list | None = None) -
 
     fig = go.Figure(go.Sunburst(
         ids=ids, labels=labels, parents=parents, values=values,
-        marker=dict(colors=colors, line=dict(color="white", width=1)),
+        marker=dict(colors=colors, line=dict(color="#0f172a", width=1)),
         branchvalues="total",
         hovertemplate="<b>%{label}</b><br>Chunks: %{value}<extra></extra>",
-        textfont=dict(size=11),
+        textfont=dict(size=11, color="#e2e8f0"),
+        insidetextfont=dict(color="#e2e8f0"),
+        outsidetextfont=dict(color="#e2e8f0"),
     ))
     fig.update_layout(
         margin=dict(t=0, l=0, r=0, b=0),
         height=380,
-        paper_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="#1e293b",
+        plot_bgcolor="#1e293b",
+        font=dict(color="#e2e8f0"),
     )
     return fig
 
@@ -516,10 +524,10 @@ def _make_pipeline_figure(rag_type: str, steps: list) -> "object | None":
     def hit(*kws: str) -> bool:
         return any(k.lower() in visited for k in kws)
 
-    # Colour palette
-    A_FILL, A_LINE, A_TEXT = "#dbeafe", "#1d4ed8", "#1e3a8a"
-    I_FILL, I_LINE, I_TEXT = "#f8fafc",  "#e2e8f0", "#94a3b8"
-    E_COLOR = "#cbd5e1"
+    # Colour palette — dark theme
+    A_FILL, A_LINE, A_TEXT = "#1e3a5f", "#3b82f6", "#93c5fd"
+    I_FILL, I_LINE, I_TEXT = "#1e293b", "#334155", "#64748b"
+    E_COLOR = "#475569"
     W, H = 0.9, 0.32   # half-width / half-height of each box
 
     if rag_type == "simple":
@@ -603,8 +611,9 @@ def _make_pipeline_figure(rag_type: str, steps: list) -> "object | None":
         yaxis=dict(range=yrng, showgrid=False, zeroline=False, showticklabels=False),
         height=fig_h,
         margin=dict(l=8, r=8, t=8, b=8),
-        paper_bgcolor="white",
-        plot_bgcolor="white",
+        paper_bgcolor="#0f172a",
+        plot_bgcolor="#0f172a",
+        font=dict(color="#e2e8f0"),
     )
     return fig
 
