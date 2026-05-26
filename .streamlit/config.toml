@@ -1,0 +1,4 @@
+[server]
+# Disable file watcher on Streamlit Cloud — prevents it from inspecting
+# all transformers submodules (some require torchvision which isn't installed).
+fileWatcherType = "none"
