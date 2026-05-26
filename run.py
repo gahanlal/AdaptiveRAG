@@ -113,8 +113,10 @@ def _start_fastapi_thread() -> None:
         log_level="error",
     )
     server = uvicorn.Server(config)
+    # MUST disable — signal.signal() only works in the OS main thread
+    server.install_signal_handlers = False
     threading.Thread(target=server.run, daemon=True, name="fastapi").start()
-    time.sleep(3)   # give uvicorn time to bind before Streamlit renders
+    time.sleep(2)   # give uvicorn time to bind
 
 
 # ---------------------------------------------------------------------------
