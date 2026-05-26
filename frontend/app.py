@@ -76,14 +76,14 @@ st.markdown(
         border: none !important;
     }
     [data-testid="stTabs"] [aria-selected="true"] {
-        background: white !important;
+        background: #f0f4ff !important;
         color: #1e3a8a !important;
         box-shadow: 0 1px 5px rgba(0,0,0,0.1) !important;
     }
 
     /* ══ METRICS ══════════════════════════════════════════════════════════ */
     div[data-testid="metric-container"] {
-        background: white !important;
+        background: #f0f4ff !important;
         border: 1px solid #e2e8f0 !important;
         border-radius: 14px !important;
         padding: 16px 20px !important;
@@ -122,7 +122,7 @@ st.markdown(
         border: 1px solid #e2e8f0 !important;
         border-radius: 12px !important;
         overflow: hidden !important;
-        background: white !important;
+        background: #f8fafc !important;
         box-shadow: 0 1px 3px rgba(0,0,0,0.03) !important;
         margin-bottom: 4px !important;
     }
@@ -137,7 +137,7 @@ st.markdown(
     [data-testid="stFileUploader"] > div {
         border: 2px dashed #cbd5e1 !important;
         border-radius: 14px !important;
-        background: white !important;
+        background: #f8fafc !important;
         transition: border-color 0.2s, background 0.2s !important;
     }
     [data-testid="stFileUploader"] > div:hover {
@@ -166,7 +166,7 @@ st.markdown(
     [data-testid="stVerticalBlockBorderWrapper"] {
         border-radius: 14px !important;
         border: 1px solid #e2e8f0 !important;
-        background: white !important;
+        background: #f8fafc !important;
         box-shadow: 0 1px 6px rgba(0,0,0,0.04) !important;
         padding: 4px 8px !important;
     }
@@ -194,7 +194,7 @@ st.markdown(
         border-radius: 10px;
         padding: 12px 16px;
         margin-bottom: 10px;
-        background: white;
+        background: #f8fafc;
         transition: border-color 0.15s, box-shadow 0.15s;
     }
     .chunk-card:hover {
@@ -916,7 +916,7 @@ with tab_query:
         )
         st.markdown(
             f'<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;'
-            f'background:white;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:18px;'
+            f'background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:18px;'
             f'box-shadow:0 1px 3px rgba(0,0,0,0.04)">'
             f'<span style="background:{mode_bg};color:{mode_cl};font-size:0.76rem;font-weight:700;'
             f'padding:3px 12px;border-radius:20px;white-space:nowrap">{mode_icon} {mode_name}</span>'
