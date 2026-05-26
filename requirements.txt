@@ -1,0 +1,32 @@
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+python-multipart>=0.0.9
+streamlit>=1.35.0
+requests>=2.32.3
+
+# LLM
+openai>=1.30.0
+
+# Orchestration (LangGraph only — no full LangChain stack needed)
+langgraph>=0.2.0
+langchain-core>=0.2.0
+
+# Embeddings + vector index (FREE local models, no API key required)
+sentence-transformers>=2.7.0
+faiss-cpu>=1.7.0
+
+# Document parsing
+pypdf>=4.2.0
+python-docx>=1.1.2
+chardet>=5.2.0
+tiktoken>=0.7.0
+
+# NLP utilities (no spaCy — pure-Python, Python 3.9 compatible)
+nltk>=3.8.0
+networkx>=2.8,<3.3
+numpy>=1.24.0
+scikit-learn>=1.3.0
+
+# Utilities
+python-dotenv>=1.0.0
+pydantic>=2.7.0

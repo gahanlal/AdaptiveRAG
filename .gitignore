@@ -1,0 +1,23 @@
+# Secrets — never commit these
+.streamlit/secrets.toml
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Data / indexes built at runtime
+data/
+*.faiss
+*.index
