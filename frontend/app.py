@@ -30,55 +30,193 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-    /* Clean card-like expanders */
-    .streamlit-expanderHeader { font-weight: 600; }
+    /* ══ GLOBALS ══════════════════════════════════════════════════════════ */
+    [data-testid="stAppViewContainer"] > .main { background: #f8fafc; }
+    hr { border-color: #f1f5f9 !important; margin: 1.4rem 0 !important; }
+    [data-testid="stAlert"] { border-radius: 10px !important; }
 
-    /* Section tree indentation */
-    .tree-node { margin-left: 1.2rem; border-left: 2px solid #e0e0e0; padding-left: 0.8rem; }
+    /* ══ SIDEBAR ══════════════════════════════════════════════════════════ */
+    [data-testid="stSidebar"] {
+        background: #0f172a !important;
+        border-right: 1px solid #1e293b !important;
+    }
+    [data-testid="stSidebar"] .stMarkdown p,
+    [data-testid="stSidebar"] label,
+    [data-testid="stSidebar"] small { color: #94a3b8 !important; }
+    [data-testid="stSidebar"] h1,
+    [data-testid="stSidebar"] h2 { color: #f1f5f9 !important; }
+    [data-testid="stSidebar"] hr { border-color: #1e293b !important; }
+    [data-testid="stSidebar"] [data-testid="baseButton-secondary"] {
+        background: #1e293b !important;
+        border: 1px solid #334155 !important;
+        color: #cbd5e1 !important;
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+    }
+    [data-testid="stSidebar"] [data-testid="baseButton-secondary"]:hover {
+        background: #334155 !important;
+        color: #f1f5f9 !important;
+    }
 
-    /* Pipeline step badges */
+    /* ══ TABS ═════════════════════════════════════════════════════════════ */
+    [data-testid="stTabs"] [data-baseweb="tab-list"] {
+        gap: 4px;
+        background: #f1f5f9;
+        border-radius: 12px;
+        padding: 4px;
+        border: 1px solid #e2e8f0;
+    }
+    [data-testid="stTabs"] [data-baseweb="tab"] {
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+        font-size: 0.88rem !important;
+        padding: 8px 22px !important;
+        color: #64748b !important;
+        background: transparent !important;
+        border: none !important;
+    }
+    [data-testid="stTabs"] [aria-selected="true"] {
+        background: white !important;
+        color: #1e3a8a !important;
+        box-shadow: 0 1px 5px rgba(0,0,0,0.1) !important;
+    }
+
+    /* ══ METRICS ══════════════════════════════════════════════════════════ */
+    div[data-testid="metric-container"] {
+        background: white !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 14px !important;
+        padding: 16px 20px !important;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.04) !important;
+    }
+    div[data-testid="metric-container"] [data-testid="stMetricLabel"] p {
+        font-size: 0.7rem !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.07em !important;
+        color: #64748b !important;
+    }
+    div[data-testid="metric-container"] [data-testid="stMetricValue"] {
+        font-size: 1.55rem !important;
+        font-weight: 800 !important;
+        color: #0f172a !important;
+    }
+
+    /* ══ BUTTONS ══════════════════════════════════════════════════════════ */
+    [data-testid="baseButton-primary"] {
+        background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%) !important;
+        border: none !important;
+        border-radius: 9px !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.02em !important;
+        box-shadow: 0 2px 10px rgba(37,99,235,0.3) !important;
+        transition: box-shadow 0.15s, transform 0.15s !important;
+    }
+    [data-testid="baseButton-primary"]:hover {
+        box-shadow: 0 4px 18px rgba(37,99,235,0.45) !important;
+        transform: translateY(-1px) !important;
+    }
+
+    /* ══ EXPANDERS ════════════════════════════════════════════════════════ */
+    [data-testid="stExpander"] {
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 12px !important;
+        overflow: hidden !important;
+        background: white !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.03) !important;
+        margin-bottom: 4px !important;
+    }
+    [data-testid="stExpander"] summary {
+        background: #f8fafc !important;
+        font-weight: 600 !important;
+        padding: 12px 16px !important;
+    }
+    [data-testid="stExpander"] summary:hover { background: #f1f5f9 !important; }
+
+    /* ══ UPLOAD ZONE ══════════════════════════════════════════════════════ */
+    [data-testid="stFileUploader"] > div {
+        border: 2px dashed #cbd5e1 !important;
+        border-radius: 14px !important;
+        background: white !important;
+        transition: border-color 0.2s, background 0.2s !important;
+    }
+    [data-testid="stFileUploader"] > div:hover {
+        border-color: #2563eb !important;
+        background: #eff6ff !important;
+    }
+
+    /* ══ TEXT INPUT ═══════════════════════════════════════════════════════ */
+    [data-testid="stTextInput"] input {
+        border-radius: 10px !important;
+        border: 1.5px solid #e2e8f0 !important;
+        font-size: 0.95rem !important;
+        padding: 10px 14px !important;
+        background: white !important;
+        transition: border-color 0.15s, box-shadow 0.15s !important;
+    }
+    [data-testid="stTextInput"] input:focus {
+        border-color: #2563eb !important;
+        box-shadow: 0 0 0 3px rgba(37,99,235,0.1) !important;
+    }
+
+    /* ══ BORDERED CONTAINERS (st.container border=True) ══════════════════ */
+    [data-testid="stVerticalBlockBorderWrapper"] {
+        border-radius: 14px !important;
+        border: 1px solid #e2e8f0 !important;
+        background: white !important;
+        box-shadow: 0 1px 6px rgba(0,0,0,0.04) !important;
+        padding: 4px 8px !important;
+    }
+
+    /* ══ PIPELINE BADGES ══════════════════════════════════════════════════ */
     .step-badge {
         display: inline-block;
-        background: #f0f4ff;
-        color: #2563eb;
-        border: 1px solid #bfdbfe;
-        border-radius: 6px;
-        padding: 2px 10px;
-        font-size: 0.78rem;
-        font-family: monospace;
-        margin: 2px 3px;
+        background: #eff6ff;
+        color: #1d4ed8;
+        border: 1.5px solid #bfdbfe;
+        border-radius: 20px;
+        padding: 3px 11px;
+        font-size: 0.73rem;
+        font-family: 'Courier New', monospace;
+        font-weight: 700;
+        margin: 2px 1px;
+        letter-spacing: 0.01em;
+        box-shadow: 0 1px 2px rgba(37,99,235,0.07);
     }
-    .step-arrow { color: #94a3b8; font-size: 1rem; margin: 0 2px; }
+    .step-arrow { color: #94a3b8; font-size: 0.8rem; margin: 0 1px; vertical-align: middle; }
 
-    /* Metric card */
-    div[data-testid="metric-container"] {
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 10px;
-        padding: 12px;
-    }
-
-    /* Chunk cards */
+    /* ══ CHUNK CARDS ══════════════════════════════════════════════════════ */
     .chunk-card {
         border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        padding: 10px 14px;
-        margin-bottom: 8px;
-        background: #fafafa;
+        border-radius: 10px;
+        padding: 12px 16px;
+        margin-bottom: 10px;
+        background: white;
+        transition: border-color 0.15s, box-shadow 0.15s;
     }
-    .chunk-meta { font-size: 0.75rem; color: #64748b; margin-bottom: 4px; }
+    .chunk-card:hover {
+        border-color: #bfdbfe;
+        box-shadow: 0 2px 10px rgba(37,99,235,0.07);
+    }
+    .chunk-meta { font-size: 0.73rem; color: #64748b; margin-bottom: 6px; font-weight: 500; }
+
+    /* ══ SECTION TREE ═════════════════════════════════════════════════════ */
+    .tree-node { margin-left: 1.2rem; border-left: 2px solid #e2e8f0; padding-left: 0.8rem; }
+
+    /* ══ STRATEGY TAGS ════════════════════════════════════════════════════ */
     .strategy-tag {
         display: inline-block;
-        font-size: 0.7rem;
-        border-radius: 4px;
-        padding: 1px 7px;
+        font-size: 0.67rem;
+        border-radius: 20px;
+        padding: 2px 9px;
         margin-left: 6px;
-        font-weight: 600;
+        font-weight: 700;
+        letter-spacing: 0.03em;
     }
-    .recursive_512              { background:#dbeafe; color:#1e40af; }
-    .recursive_256_small_only   { background:#ede9fe; color:#5b21b6; }
-    .recursive_400_para         { background:#dcfce7; color:#166534; }
-    .fallback_hard_split        { background:#fee2e2; color:#991b1b; }
+    .recursive_512            { background: #dbeafe; color: #1e40af; }
+    .recursive_256_small_only { background: #ede9fe; color: #5b21b6; }
+    .recursive_400_para       { background: #dcfce7; color: #166534; }
+    .fallback_hard_split      { background: #fee2e2; color: #991b1b; }
     </style>
     """,
     unsafe_allow_html=True,
@@ -105,17 +243,51 @@ for key, default in {
 with st.sidebar:
     st.title("🔍 RAG Configurator")
     st.markdown("---")
-    st.caption("FastAPI backend on :8000 · Streamlit on :8501")
 
-    if st.button("Check API health"):
+    if st.button("Check API health", use_container_width=True):
         try:
             r = requests.get(f"{API_BASE}/health", timeout=5)
             if r.ok:
                 st.success(f"API online — v{r.json().get('version', '?')}")
             else:
-                st.warning("Backend is still starting up. Please wait a moment and try again.")
+                st.warning("Backend is still starting up.")
         except Exception:
-            st.warning("Backend is still starting up. Please wait a moment and try again.")
+            st.warning("Backend is still starting up.")
+
+    st.markdown("---")
+
+    # Live session status card
+    if st.session_state.session_id:
+        mode_color = "#3b82f6" if st.session_state.rag_type == "simple" else "#8b5cf6"
+        mode_label = "⚡ Simple RAG" if st.session_state.rag_type == "simple" else "🧠 Adaptive RAG"
+        fname = st.session_state.filename or "document"
+        fname_short = fname[:26] + "…" if len(fname) > 26 else fname
+        st.markdown(
+            f'<div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:14px 16px">'
+            f'<div style="font-size:0.65rem;font-weight:700;color:#475569;text-transform:uppercase;'
+            f'letter-spacing:0.08em;margin-bottom:8px">Active Session</div>'
+            f'<div style="font-size:0.83rem;font-weight:600;color:#e2e8f0;margin-bottom:8px">'
+            f'📄 {fname_short}</div>'
+            f'<span style="background:{mode_color}25;color:{mode_color};font-size:0.72rem;'
+            f'font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid {mode_color}40">'
+            f'{mode_label}</span>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            '<div style="background:#1e293b;border:1px solid #1e293b;border-radius:12px;'
+            'padding:14px 16px;text-align:center">'
+            '<div style="font-size:1.5rem;margin-bottom:6px">📭</div>'
+            '<div style="font-size:0.82rem;color:#64748b;font-weight:600">No document loaded</div>'
+            '<div style="font-size:0.74rem;color:#475569;margin-top:4px">'
+            'Upload a file in the Document tab</div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+
+    st.markdown("---")
+    st.caption("FastAPI :8000 · Streamlit :8501")
 
 
 # ---------------------------------------------------------------------------
@@ -278,8 +450,10 @@ def _render_structure_tree(nodes, chunks_by_id: dict, depth: int = 0) -> None:
                 _render_structure_tree(node["children"], chunks_by_id, depth + 1)
 
 
-def _structure_sunburst(tree: list, doc_name: str) -> "object | None":
-    """Return a plotly Sunburst chart of the document's section hierarchy."""
+def _structure_sunburst(tree: list, doc_name: str, chunks: list | None = None) -> "object | None":
+    """Return a plotly Sunburst chart of the document's section hierarchy.
+    Falls back to a flat grouping by chunk section-title when no structural tree exists.
+    """
     try:
         import plotly.graph_objects as go
     except ImportError:
@@ -304,6 +478,19 @@ def _structure_sunburst(tree: list, doc_name: str) -> "object | None":
                 walk(n["children"], nid)
 
     walk(tree, "root")
+
+    # Fallback: tree was empty — build a flat chart grouped by chunk section title
+    if len(ids) < 2 and chunks:
+        sec_counts: dict[str, int] = {}
+        for c in chunks:
+            sec = (c.get("section_title") or "Untitled")[:40]
+            sec_counts[sec] = sec_counts.get(sec, 0) + 1
+        ids     = ["root"] + [f"root/{s}" for s in sec_counts]
+        labels  = [doc_name[:40]] + list(sec_counts.keys())
+        parents = [""] + ["root"] * len(sec_counts)
+        values  = [0] + list(sec_counts.values())
+        colors  = ["#3b82f6"] + ["#6366f1"] * len(sec_counts)
+
     if len(ids) < 2:
         return None
 
@@ -449,6 +636,47 @@ with tab_doc:
         "Compare fixed chunking (Simple) vs. structure-aware chunking (Adaptive) side by side."
     )
 
+    with st.expander("ℹ️ Simple RAG vs Adaptive RAG — differences & how to test", expanded=False):
+        st.markdown("""
+#### At a glance
+
+| | ⚡ Simple RAG | 🧠 Adaptive RAG |
+|---|---|---|
+| **Chunking** | Fixed 512-token windows, 50-token overlap | Structure-aware — sections detected via heading hierarchy |
+| **Strategies** | One fixed strategy | Multiple strategies compete per section; best score wins |
+| **Retrieval** | Single FAISS vector search | Up to 4 parallel indexes (vector · structural · metadata · graph) |
+| **Reranking** | None | LLM reranker removes low-quality chunks |
+| **Context window** | Raw chunk text only | Parent + neighbour chunks expanded for richer context |
+| **Routing** | Always vector | LLM detects query intent → picks the best index automatically |
+| **Refinement** | None | Low-confidence retrieval loops back for a targeted second pass |
+
+#### Why Adaptive RAG gives better answers
+
+- Chunks follow **natural section boundaries**, so answers never split mid-thought
+- Multiple indexes mean structural questions (*"what does section 3 say?"*) and conceptual
+  questions (*"explain the methodology"*) both get the right chunks
+- LLM reranking removes noise — only high-signal passages reach the generator
+- The refinement loop catches cases where the first retrieval pass was too shallow
+
+#### How to test the difference
+
+1. **Upload a structured document** — a research paper, report, or manual with clear headings works best
+2. After processing, inspect the **Document Structure Map** that appears immediately — Adaptive
+   detects named sections; Simple has no concept of structure
+3. Compare **chunk counts** in the side-by-side view — Adaptive typically produces *fewer but more
+   complete* chunks that stay inside one section
+4. Go to the **Query** tab and try these question types:
+   - *Broad/conceptual* — **"Summarise the main contributions"** — both should respond; compare depth
+   - *Section-specific* — **"What does the introduction say?"** — Adaptive retrieves the correct
+     section; Simple may mix in unrelated content
+   - *Cross-section* — **"Compare the approach in section 2 and section 5"** — Adaptive's multi-index
+     finds both sections; Simple returns scattered results
+5. After each query, expand the **Pipeline Flow diagram** to see which nodes were activated —
+   Adaptive shows context expansion, reranking, and the chosen retriever
+6. Toggle **LLM intent-routed** on the main page, repeat the same query, and watch whether a
+   different retriever is chosen
+        """)
+
     col_up, col_paste = st.columns([1, 1])
 
     with col_up:
@@ -532,6 +760,17 @@ with tab_doc:
         m2.metric("Adaptive chunks", len(adaptive_chunks))
         m3.metric("Detected sections", len(structure_tree))
         m4.metric("Total words", f"{result['word_count']:,}")
+
+        # ---- Document Structure Map (top of results) ----
+        fig_sun = _structure_sunburst(structure_tree, result["filename"], adaptive_chunks)
+        if fig_sun is not None:
+            st.markdown("")
+            st.subheader("📊 Document Structure Map")
+            st.caption(
+                "Sunburst of the detected section hierarchy. "
+                "Each sector = one section; size = adaptive chunk count. Hover for details."
+            )
+            st.plotly_chart(fig_sun, use_container_width=True, key="structure_map")
 
         st.markdown("")
 
@@ -649,16 +888,40 @@ with tab_query:
     st.header("Ask a Question")
 
     if not st.session_state.session_id:
-        st.info("Process a document in the **Document** tab first.")
+        st.markdown(
+            '<div style="text-align:center;padding:56px 24px">'
+            '<div style="font-size:3rem;margin-bottom:14px">📭</div>'
+            '<div style="font-size:1.1rem;font-weight:700;color:#1e293b;margin-bottom:8px">'
+            'No document loaded yet</div>'
+            '<div style="color:#94a3b8;font-size:0.9rem;max-width:360px;margin:0 auto">'
+            'Head to the <strong>📄 Document</strong> tab, upload a file or paste text, '
+            'then return here to query it.</div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
     else:
-        st.caption(
-            f"Document: **{st.session_state.filename}** · "
-            f"Mode: **{st.session_state.rag_type.upper()}**"
-            + (
-                f" · Retrieval: **{st.session_state.retrieval_mode}**"
-                if st.session_state.rag_type == "adaptive"
-                else ""
-            )
+        # Session info pill
+        mode_icon = "⚡" if st.session_state.rag_type == "simple" else "🧠"
+        mode_name = "Simple RAG" if st.session_state.rag_type == "simple" else "Adaptive RAG"
+        mode_bg   = "#eff6ff" if st.session_state.rag_type == "simple" else "#f5f3ff"
+        mode_cl   = "#1d4ed8" if st.session_state.rag_type == "simple" else "#6d28d9"
+        retrieval_span = (
+            f'<span style="margin-left:auto;color:#94a3b8;font-size:0.78rem">'
+            f'Retrieval: <code style="background:#f1f5f9;padding:1px 6px;border-radius:4px">'
+            f'{st.session_state.retrieval_mode}</code></span>'
+            if st.session_state.rag_type == "adaptive" else ""
+        )
+        st.markdown(
+            f'<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;'
+            f'background:white;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:18px;'
+            f'box-shadow:0 1px 3px rgba(0,0,0,0.04)">'
+            f'<span style="background:{mode_bg};color:{mode_cl};font-size:0.76rem;font-weight:700;'
+            f'padding:3px 12px;border-radius:20px;white-space:nowrap">{mode_icon} {mode_name}</span>'
+            f'<span style="color:#475569;font-size:0.85rem;font-weight:500">'
+            f'📄 {st.session_state.filename}</span>'
+            f'{retrieval_span}'
+            f'</div>',
+            unsafe_allow_html=True,
         )
 
         query_text = st.text_input(
@@ -693,7 +956,15 @@ with tab_query:
         if st.session_state.query_result:
             qr = st.session_state.query_result
 
-            st.markdown("---")
+            st.markdown("")
+            st.markdown(
+                '<div style="display:flex;align-items:center;gap:12px;margin:8px 0">'
+                '<div style="height:1px;flex:1;background:#e2e8f0"></div>'
+                '<span style="font-size:0.72rem;font-weight:700;color:#94a3b8;'
+                'text-transform:uppercase;letter-spacing:0.06em">Results</span>'
+                '<div style="height:1px;flex:1;background:#e2e8f0"></div></div>',
+                unsafe_allow_html=True,
+            )
 
             # Metrics row
             mc1, mc2, mc3 = st.columns(3)
@@ -701,48 +972,99 @@ with tab_query:
             mc2.metric("📦 Chunks retrieved", qr["retrieval_count"])
             mc3.metric("📌 Chunks reranked", len(qr["retrieved_docs"]))
 
-            # Intent (adaptive only)
-            if st.session_state.rag_type == "adaptive" and qr.get("intent"):
-                intent_colors = {
-                    "semantic": "#3b82f6",
-                    "structural": "#8b5cf6",
-                    "metadata": "#f59e0b",
-                    "graph": "#10b981",
-                }
-                color = intent_colors.get(qr["intent"], "#64748b")
-                st.markdown(
-                    f"**Detected intent:** "
-                    f'<span style="background:{color};color:white;padding:2px 10px;'
-                    f'border-radius:6px;font-size:0.85rem">{qr["intent"]}</span>',
-                    unsafe_allow_html=True,
-                )
+            steps = qr.get("path_taken", [])
+            fig_flow = _make_pipeline_figure(st.session_state.rag_type, steps)
+
+            # ── Adaptive RAG: flow diagram side-by-side with the response ──────
+            if st.session_state.rag_type == "adaptive" and fig_flow is not None:
+                col_flow, col_resp = st.columns([5, 6], gap="large")
+
+                with col_flow:
+                    st.markdown("#### 🔄 Pipeline Flow")
+                    # Intent badge
+                    if qr.get("intent"):
+                        intent_colors = {
+                            "semantic": "#3b82f6",
+                            "structural": "#8b5cf6",
+                            "metadata": "#f59e0b",
+                            "graph": "#10b981",
+                        }
+                        color = intent_colors.get(qr["intent"], "#64748b")
+                        st.markdown(
+                            f"**Detected intent:** "
+                            f'<span style="background:{color};color:white;padding:2px 10px;'
+                            f'border-radius:6px;font-size:0.82rem">{qr["intent"]}</span>',
+                            unsafe_allow_html=True,
+                        )
+                        st.markdown("")
+                    _render_pipeline_trace(steps)
+                    st.markdown("")
+                    st.plotly_chart(fig_flow, use_container_width=True, key="pipeline_flow")
+
+                with col_resp:
+                    st.markdown("#### 💬 Response")
+                    with st.container(border=True):
+                        st.markdown(qr["response"])
+                    if qr.get("citations"):
+                        st.markdown("")
+                        st.markdown(
+                            '<span style="font-size:0.8rem;font-weight:700;color:#64748b;'
+                            'text-transform:uppercase;letter-spacing:0.05em">Citations</span>',
+                            unsafe_allow_html=True,
+                        )
+                        for cite in qr["citations"]:
+                            st.markdown(
+                                f'<code style="background:#f1f5f9;color:#374151;padding:2px 8px;'
+                                f'border-radius:5px;font-size:0.8rem">{cite}</code>',
+                                unsafe_allow_html=True,
+                            )
+
+            # ── Simple RAG (or adaptive with no figure): linear layout ──────────
+            else:
+                if st.session_state.rag_type == "adaptive" and qr.get("intent"):
+                    intent_colors = {
+                        "semantic": "#3b82f6",
+                        "structural": "#8b5cf6",
+                        "metadata": "#f59e0b",
+                        "graph": "#10b981",
+                    }
+                    color = intent_colors.get(qr["intent"], "#64748b")
+                    st.markdown(
+                        f"**Detected intent:** "
+                        f'<span style="background:{color};color:white;padding:2px 10px;'
+                        f'border-radius:6px;font-size:0.85rem">{qr["intent"]}</span>',
+                        unsafe_allow_html=True,
+                    )
+                    st.markdown("")
+
+                _render_pipeline_trace(steps)
                 st.markdown("")
 
-            # Pipeline trace (badge row) + flow diagram
-            steps = qr.get("path_taken", [])
-            _render_pipeline_trace(steps)
-            st.markdown("")
+                if fig_flow is not None:
+                    with st.expander("🔄 Pipeline Flow  *(blue = executed nodes)*", expanded=True):
+                        st.plotly_chart(fig_flow, use_container_width=True, key="pipeline_flow")
+                st.markdown("")
 
-            # ---- Real-time pipeline flow diagram ----
-            fig_flow = _make_pipeline_figure(st.session_state.rag_type, steps)
-            if fig_flow is not None:
-                with st.expander("🔄 Pipeline Flow  *(blue = executed nodes)*", expanded=True):
-                    st.plotly_chart(fig_flow, use_container_width=True, key="pipeline_flow")
-            st.markdown("")
+                st.subheader("Response")
+                with st.container(border=True):
+                    st.markdown(qr["response"])
 
-            # Response
-            st.subheader("Response")
-            st.markdown(qr["response"])
-
-            # Citations
-            if qr.get("citations"):
-                st.markdown("**Citations used:**")
-                for cite in qr["citations"]:
-                    st.markdown(f"- `{cite}`")
+                if qr.get("citations"):
+                    st.markdown(
+                        '<span style="font-size:0.8rem;font-weight:700;color:#64748b;'
+                        'text-transform:uppercase;letter-spacing:0.05em">Citations</span>',
+                        unsafe_allow_html=True,
+                    )
+                    for cite in qr["citations"]:
+                        st.markdown(
+                            f'<code style="background:#f1f5f9;color:#374151;padding:2px 8px;'
+                            f'border-radius:5px;font-size:0.8rem">{cite}</code>',
+                            unsafe_allow_html=True,
+                        )
 
             # Retrieved chunks detail
             with st.expander(
-                f"Retrieved chunks ({len(qr['retrieved_docs'])} shown after reranking)",
+                f"🗂️ Retrieved chunks · {len(qr['retrieved_docs'])} shown after reranking",
                 expanded=False,
             ):
                 for i, doc in enumerate(qr["retrieved_docs"]):
