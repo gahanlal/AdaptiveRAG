@@ -32,6 +32,21 @@ st.markdown(
     <style>
     /* ══ GLOBALS ══════════════════════════════════════════════════════════ */
     [data-testid="stAppViewContainer"] > .main { background: #f8fafc; }
+    /* Force dark text everywhere so the light background is always readable */
+    [data-testid="stAppViewContainer"],
+    [data-testid="stAppViewContainer"] p,
+    [data-testid="stAppViewContainer"] li,
+    [data-testid="stAppViewContainer"] td,
+    [data-testid="stAppViewContainer"] th,
+    [data-testid="stAppViewContainer"] span,
+    [data-testid="stAppViewContainer"] label,
+    [data-testid="stAppViewContainer"] .stMarkdown,
+    [data-testid="stAppViewContainer"] [data-testid="stMarkdownContainer"] {
+        color: #0f172a !important;
+    }
+    /* Keep sidebar text using its own colours (overridden below) */
+    [data-testid="stSidebar"],
+    [data-testid="stSidebar"] * { color: inherit; }
     hr { border-color: #f1f5f9 !important; margin: 1.4rem 0 !important; }
     [data-testid="stAlert"] { border-radius: 10px !important; }
 
@@ -44,7 +59,8 @@ st.markdown(
     [data-testid="stSidebar"] label,
     [data-testid="stSidebar"] small { color: #94a3b8 !important; }
     [data-testid="stSidebar"] h1,
-    [data-testid="stSidebar"] h2 { color: #f1f5f9 !important; }
+    [data-testid="stSidebar"] h2,
+    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] { color: #f1f5f9 !important; }
     [data-testid="stSidebar"] hr { border-color: #1e293b !important; }
     [data-testid="stSidebar"] [data-testid="baseButton-secondary"] {
         background: #1e293b !important;
