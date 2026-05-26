@@ -910,17 +910,17 @@ with tab_query:
         mode_cl   = "#1d4ed8" if st.session_state.rag_type == "simple" else "#6d28d9"
         retrieval_span = (
             f'<span style="margin-left:auto;color:#94a3b8;font-size:0.78rem">'
-            f'Retrieval: <code style="background:#f1f5f9;padding:1px 6px;border-radius:4px">'
+            f'Retrieval: <code style="background:#334155;color:#e2e8f0;padding:1px 6px;border-radius:4px">'
             f'{st.session_state.retrieval_mode}</code></span>'
             if st.session_state.rag_type == "adaptive" else ""
         )
         st.markdown(
-            f'<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;'
-            f'background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:18px;'
-            f'box-shadow:0 1px 3px rgba(0,0,0,0.04)">'
-            f'<span style="background:{mode_bg};color:{mode_cl};font-size:0.76rem;font-weight:700;'
-            f'padding:3px 12px;border-radius:20px;white-space:nowrap">{mode_icon} {mode_name}</span>'
-            f'<span style="color:#475569;font-size:0.85rem;font-weight:500">'
+            f'<div style="display:flex;align-items:center;gap:10px;padding:11px 18px;'
+            f'background:#1e293b;border:1px solid #334155;border-radius:12px;margin-bottom:18px;">'
+            f'<span style="background:{mode_cl}30;color:{mode_cl};font-size:0.76rem;font-weight:700;'
+            f'padding:3px 12px;border-radius:20px;border:1px solid {mode_cl}50;white-space:nowrap">'
+            f'{mode_icon} {mode_name}</span>'
+            f'<span style="color:#e2e8f0;font-size:0.85rem;font-weight:500">'
             f'📄 {st.session_state.filename}</span>'
             f'{retrieval_span}'
             f'</div>',
