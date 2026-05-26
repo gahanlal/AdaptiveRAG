@@ -1,33 +1,60 @@
 """
-run.py — Single entry point.
-Starts FastAPI (uvicorn :8000) and Streamlit (:8501) as subprocesses.
-Press Ctrl+C to stop both.
+run.py — Entry point for local development and Streamlit Cloud deployment.
+
+Local  (python run.py):
+  Spawns FastAPI (:8000) and Streamlit (:8501) as subprocesses.
+
+Cloud  (Streamlit Cloud runs this as the app file):
+  Starts FastAPI in a background daemon thread, then delegates UI to
+  frontend/app.py via runpy — no subprocess spawning, no signal handlers.
 
 Secret precedence (highest → lowest):
-  1. .streamlit/secrets.toml  (your API keys — never commit this file)
-  2. .env                     (provider/model defaults — safe to commit)
+  1. Streamlit Cloud Secrets UI  /  .streamlit/secrets.toml
+  2. .env
   3. existing environment variables
 """
-import subprocess
-import sys
+from __future__ import annotations
+
 import os
 import re
-import signal
+import sys
+import threading
 import time
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, ROOT)
+
+
+# ---------------------------------------------------------------------------
+# Detect whether we are inside the Streamlit script runner
+# ---------------------------------------------------------------------------
+
+def _running_under_streamlit() -> bool:
+    """True when this script is executed by Streamlit (cloud or `streamlit run`)."""
+    # Not the OS main thread → always means Streamlit is running us
+    if threading.current_thread() is not threading.main_thread():
+        return True
+    # Streamlit Cloud mounts repos under /mount/src/
+    if os.path.exists("/mount/src"):
+        return True
+    # Streamlit runtime is active (e.g. `streamlit run run.py` locally)
+    try:
+        import streamlit.runtime
+        return streamlit.runtime.exists()
+    except Exception:
+        return False
+
+
+# ---------------------------------------------------------------------------
+# Secret / env helpers
+# ---------------------------------------------------------------------------
 
 
 def _load_toml_secrets(base_env: dict) -> dict:
-    """
-    Parse .streamlit/secrets.toml and overlay its values onto base_env.
-    Handles simple scalar lines:  KEY = "value"  |  KEY = 'value'  |  KEY = value
-    Silently skips sections ([headers]), comments, and complex values.
-    """
+    """Parse .streamlit/secrets.toml and overlay its values onto base_env."""
     secrets_path = os.path.join(ROOT, ".streamlit", "secrets.toml")
     if not os.path.exists(secrets_path):
         return base_env
-
     env = dict(base_env)
     _scalar = re.compile(
         r'^([A-Z][A-Z0-9_]*)\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^#\n\[]+))\s*(?:#.*)?$'
@@ -38,55 +65,100 @@ def _load_toml_secrets(base_env: dict) -> dict:
             if m:
                 key = m.group(1)
                 value = (m.group(2) or m.group(3) or m.group(4) or "").strip()
-                if value and value != "sk-...":   # skip unfilled placeholders
+                if value and value != "sk-...":
                     env[key] = value
     return env
 
 
+def _inject_streamlit_secrets() -> None:
+    """On Streamlit Cloud, copy st.secrets into os.environ."""
+    try:
+        import streamlit as st
+        for k, v in st.secrets.items():
+            if isinstance(v, str) and v not in ("sk-...", ""):
+                os.environ.setdefault(k, v)
+    except Exception:
+        pass
+    # Also honour .env if present (lower priority)
+    try:
+        from dotenv import dotenv_values
+        for k, v in dotenv_values(os.path.join(ROOT, ".env")).items():
+            if v:
+                os.environ.setdefault(k, v)
+    except Exception:
+        pass
+
+
+def _start_fastapi_thread() -> None:
+    """Start uvicorn in a daemon thread (used in cloud / Streamlit-runner mode)."""
+    import uvicorn
+    os.environ.setdefault("PYTHONPATH", ROOT)
+    config = uvicorn.Config(
+        "backend.main:app",
+        host="0.0.0.0",
+        port=8000,
+        log_level="error",
+    )
+    server = uvicorn.Server(config)
+    threading.Thread(target=server.run, daemon=True, name="fastapi").start()
+    time.sleep(3)   # give uvicorn time to bind before Streamlit renders
+
+
+# ---------------------------------------------------------------------------
+# Cloud / Streamlit-runner execution path
+# ---------------------------------------------------------------------------
+
+if _running_under_streamlit():
+    _inject_streamlit_secrets()
+    # Guard against re-starting on every Streamlit rerun
+    if not os.environ.get("_FASTAPI_THREAD_STARTED"):
+        _start_fastapi_thread()
+        os.environ["_FASTAPI_THREAD_STARTED"] = "1"
+    # Delegate rendering to the actual frontend app
+    import runpy as _runpy
+    _runpy.run_path(
+        os.path.join(ROOT, "frontend", "app.py"),
+        run_name="__main__",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Local development path  (python run.py)
+# ---------------------------------------------------------------------------
+
 def main() -> None:
+    import signal
+    import subprocess
+    from dotenv import dotenv_values
+
     print("Starting Adaptive RAG Configurator…\n")
 
-    # Load .env first (low priority), then overlay .streamlit/secrets.toml
-    from dotenv import dotenv_values
     env_file = os.path.join(ROOT, ".env")
     base_env = {**os.environ, **dotenv_values(env_file)}
     merged_env = _load_toml_secrets(base_env)
     merged_env["PYTHONPATH"] = ROOT
 
     provider = merged_env.get("LLM_PROVIDER", "ollama")
-    model = merged_env.get(
-        {"openai": "OPENAI_MODEL", "groq": "GROQ_MODEL", "custom": "CUSTOM_MODEL"}.get(provider, "OLLAMA_MODEL"),
-        "?"
-    )
+    _model_key = {
+        "openai": "OPENAI_MODEL", "groq": "GROQ_MODEL",
+        "groq-fallback": "GROQ_MODEL", "custom": "CUSTOM_MODEL",
+    }.get(provider, "OLLAMA_MODEL")
+    model = merged_env.get(_model_key, "?")
     print(f"  LLM provider : {provider}  |  model : {model}")
 
-    # FastAPI backend
     api_proc = subprocess.Popen(
-        [
-            sys.executable, "-m", "uvicorn",
-            "backend.main:app",
-            "--host", "0.0.0.0",
-            "--port", "8000",
-            "--reload",
-        ],
-        cwd=ROOT,
-        env=merged_env,
+        [sys.executable, "-m", "uvicorn", "backend.main:app",
+         "--host", "0.0.0.0", "--port", "8000", "--reload"],
+        cwd=ROOT, env=merged_env,
     )
-
-    # Brief pause so API is up before Streamlit renders
     time.sleep(2)
 
-    # Streamlit frontend
     st_proc = subprocess.Popen(
-        [
-            sys.executable, "-m", "streamlit", "run",
-            os.path.join(ROOT, "frontend", "app.py"),
-            "--server.port", "8501",
-            "--server.address", "0.0.0.0",
-            "--server.headless", "true",
-        ],
-        cwd=ROOT,
-        env=merged_env,
+        [sys.executable, "-m", "streamlit", "run",
+         os.path.join(ROOT, "frontend", "app.py"),
+         "--server.port", "8501", "--server.address", "0.0.0.0",
+         "--server.headless", "true"],
+        cwd=ROOT, env=merged_env,
     )
 
     print("\n" + "=" * 60)
@@ -107,7 +179,6 @@ def main() -> None:
     signal.signal(signal.SIGINT, _shutdown)
     signal.signal(signal.SIGTERM, _shutdown)
 
-    # Wait for either process to exit unexpectedly
     while True:
         if api_proc.poll() is not None:
             print("FastAPI exited unexpectedly. Stopping Streamlit.")

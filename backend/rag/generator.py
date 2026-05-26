@@ -5,23 +5,10 @@ import os
 import tiktoken
 
 from backend.models import RetrievedDoc
-from backend.rag.llm_client import get_client
+from backend.rag.llm_client import chat_with_fallback
 
-_oai_client = None
 _enc = tiktoken.get_encoding("cl100k_base")
 CONTEXT_TOKEN_BUDGET = 3000
-
-
-def _get_oai():
-    global _oai_client
-    if _oai_client is None:
-        _oai_client, _ = get_client()
-    return _oai_client
-
-
-def _get_model() -> str:
-    _, model = get_client()
-    return model
 
 
 def _token_count(text: str) -> int:
@@ -79,8 +66,6 @@ def generate(
     Generate a grounded answer. Returns (response_text, used_citations).
     Citations are in format [Section Title | chunk_id].
     """
-    oai = _get_oai()
-
     system_prompt = (
         "You are a precise, grounded question-answering assistant.\n"
         "Answer the user's question using ONLY the provided context.\n"
@@ -92,8 +77,7 @@ def generate(
         "Be concise and factual."
     )
 
-    completion = oai.chat.completions.create(
-        model=_get_model(),
+    completion = chat_with_fallback(
         messages=[
             {"role": "system", "content": system_prompt},
             {

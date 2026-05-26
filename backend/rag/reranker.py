@@ -5,23 +5,9 @@ import os
 import json
 
 from backend.models import RetrievedDoc
-from backend.rag.llm_client import get_client
+from backend.rag.llm_client import chat_with_fallback
 
-_oai_client = None
 TOP_K_RERANKED = 5
-
-
-def _get_oai():
-    global _oai_client
-    if _oai_client is None:
-        _oai_client, _ = get_client()
-    return _oai_client
-
-
-def _get_model() -> str:
-    _, model = get_client()
-    return model
-
 
 def rerank(query: str, docs: list[RetrievedDoc], top_k: int = TOP_K_RERANKED) -> list[RetrievedDoc]:
     """Score each doc 0.0–1.0 for relevance to query. Return top_k sorted descending."""
@@ -41,10 +27,8 @@ def rerank(query: str, docs: list[RetrievedDoc], top_k: int = TOP_K_RERANKED) ->
         "Return ONLY valid JSON like: {\"0\": 0.9, \"1\": 0.3, ...}"
     )
 
-    oai = _get_oai()
     try:
-        completion = oai.chat.completions.create(
-            model=_get_model(),
+        completion = chat_with_fallback(
             messages=[
                 {
                     "role": "system",
