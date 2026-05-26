@@ -30,208 +30,180 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-    /* ══ CSS VARIABLES — override Streamlit theme at the root level ═══════ */
-    :root {
-        --text-color: #0f172a;
-        --background-color: #f8fafc;
-        --secondary-background-color: #f1f5f9;
-        --primary-color: #2563eb;
-    }
+    /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+       DARK THEME  ·  bg:#0f172a  ·  card:#1e293b  ·  text:#f1f5f9
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
-    /* ══ MAIN APP — force light background + dark text unconditionally ════ */
-    .stApp {
-        background-color: #f8fafc !important;
-        color: #0f172a !important;
-    }
-    /* Target every rendered text node in the main content area */
-    .stApp p,
-    .stApp span:not([data-testid*="Sidebar"] span),
-    .stApp label,
-    .stApp li,
-    .stApp td,
-    .stApp th,
-    .stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp h5, .stApp h6,
-    .stApp [data-testid="stMarkdownContainer"],
-    .stApp [data-testid="stMarkdownContainer"] *,
-    .stApp [data-testid="stText"],
-    .stApp [data-testid="stCaption"],
-    .stApp [data-testid="stSpinner"] p,
-    .stApp [data-testid="stSpinner"] span,
-    .stApp [data-testid="stSpinner"] div {
-        color: #0f172a !important;
-    }
-
-    /* ══ SIDEBAR — dark background, light text (must come AFTER the above) */
-    [data-testid="stSidebar"] {
-        background: #0f172a !important;
-        border-right: 1px solid #1e293b !important;
-    }
-    [data-testid="stSidebar"],
-    [data-testid="stSidebar"] p,
-    [data-testid="stSidebar"] span,
-    [data-testid="stSidebar"] label,
-    [data-testid="stSidebar"] li { color: #cbd5e1 !important; }
-    [data-testid="stSidebar"] h1,
-    [data-testid="stSidebar"] h2 { color: #f1f5f9 !important; }
-    [data-testid="stSidebar"] small,
-    [data-testid="stSidebar"] .stCaptionContainer { color: #64748b !important; }
-    [data-testid="stSidebar"] hr { border-color: #1e293b !important; }
-    [data-testid="stSidebar"] [data-testid="baseButton-secondary"] {
-        background: #1e293b !important;
-        border: 1px solid #334155 !important;
-        color: #cbd5e1 !important;
-        border-radius: 8px !important;
-        font-weight: 600 !important;
-    }
-    [data-testid="stSidebar"] [data-testid="baseButton-secondary"]:hover {
-        background: #334155 !important;
+    /* ── RESET: force background + text on every Streamlit root ────────── */
+    html, body, .stApp,
+    [data-testid="stAppViewContainer"],
+    [data-testid="stMain"],
+    [data-testid="stMainBlockContainer"],
+    [data-testid="block-container"] {
+        background-color: #0f172a !important;
         color: #f1f5f9 !important;
     }
 
-    hr { border-color: #e2e8f0 !important; margin: 1.4rem 0 !important; }
-    [data-testid="stAlert"] { border-radius: 10px !important; }
+    /* ── ALL TEXT defaults to light ─────────────────────────────────────── */
+    .stApp p, .stApp span, .stApp div,
+    .stApp label, .stApp li, .stApp td, .stApp th,
+    .stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp h5, .stApp h6,
+    .stApp small, .stApp code,
+    .stApp [class*="stMarkdown"],
+    .stApp [data-testid="stMarkdownContainer"],
+    .stApp [data-testid="stMarkdownContainer"] * {
+        color: #f1f5f9 !important;
+    }
 
-    /* ══ TABS ═════════════════════════════════════════════════════════════ */
+    /* ── SIDEBAR ─────────────────────────────────────────────────────────── */
+    [data-testid="stSidebar"],
+    [data-testid="stSidebar"] > div { background: #020617 !important; }
+    [data-testid="stSidebar"] * { color: #cbd5e1 !important; }
+    [data-testid="stSidebar"] h1,
+    [data-testid="stSidebar"] h2 { color: #f1f5f9 !important; }
+    [data-testid="stSidebar"] small { color: #64748b !important; }
+    [data-testid="stSidebar"] hr { border-color: #1e293b !important; margin: 1rem 0 !important; }
+    [data-testid="stSidebar"] [data-testid="baseButton-secondary"] {
+        background: #1e293b !important; border: 1px solid #334155 !important;
+        color: #cbd5e1 !important; border-radius: 8px !important; font-weight: 600 !important;
+    }
+    [data-testid="stSidebar"] [data-testid="baseButton-secondary"]:hover {
+        background: #334155 !important; color: #f1f5f9 !important;
+    }
+
+    /* ── DIVIDER ──────────────────────────────────────────────────────────── */
+    hr { border-color: #1e293b !important; margin: 1.4rem 0 !important; }
+
+    /* ── TABS ────────────────────────────────────────────────────────────── */
     [data-testid="stTabs"] [data-baseweb="tab-list"] {
-        gap: 4px;
-        background: #f1f5f9;
-        border-radius: 12px;
-        padding: 4px;
-        border: 1px solid #e2e8f0;
+        background: #1e293b !important; border-radius: 12px; padding: 4px;
+        border: 1px solid #334155; gap: 4px;
     }
     [data-testid="stTabs"] [data-baseweb="tab"] {
-        border-radius: 8px !important;
-        font-weight: 600 !important;
-        font-size: 0.88rem !important;
-        padding: 8px 22px !important;
-        color: #64748b !important;
-        background: transparent !important;
-        border: none !important;
+        border-radius: 8px !important; font-weight: 600 !important;
+        padding: 8px 22px !important; color: #94a3b8 !important;
+        background: transparent !important; border: none !important;
     }
     [data-testid="stTabs"] [aria-selected="true"] {
-        background: #eff6ff !important;
-        color: #1e3a8a !important;
-        box-shadow: 0 1px 5px rgba(0,0,0,0.1) !important;
+        background: #1e3a5f !important; color: #93c5fd !important;
+        box-shadow: 0 1px 5px rgba(0,0,0,0.4) !important;
     }
 
-    /* ══ METRICS ══════════════════════════════════════════════════════════ */
+    /* ── METRICS ─────────────────────────────────────────────────────────── */
     div[data-testid="metric-container"] {
-        background: #eff6ff !important;
-        border: 1px solid #bfdbfe !important;
-        border-radius: 14px !important;
-        padding: 16px 20px !important;
+        background: #1e293b !important; border: 1px solid #334155 !important;
+        border-radius: 14px !important; padding: 16px 20px !important;
     }
-    div[data-testid="metric-container"] * { color: #0f172a !important; }
+    div[data-testid="metric-container"] * { color: #f1f5f9 !important; }
 
-    /* ══ BUTTONS ══════════════════════════════════════════════════════════ */
+    /* ── PRIMARY BUTTON ──────────────────────────────────────────────────── */
     [data-testid="baseButton-primary"] {
         background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%) !important;
-        border: none !important;
-        border-radius: 9px !important;
-        font-weight: 700 !important;
-        color: #ffffff !important;
-        box-shadow: 0 2px 10px rgba(37,99,235,0.3) !important;
+        border: none !important; border-radius: 9px !important;
+        font-weight: 700 !important; color: #ffffff !important;
+        box-shadow: 0 2px 10px rgba(37,99,235,0.4) !important;
     }
     [data-testid="baseButton-primary"] * { color: #ffffff !important; }
 
-    /* ══ EXPANDERS ════════════════════════════════════════════════════════ */
+    /* ── SECONDARY BUTTON ────────────────────────────────────────────────── */
+    [data-testid="baseButton-secondary"] {
+        background: #1e293b !important; border: 1px solid #334155 !important;
+        color: #e2e8f0 !important; border-radius: 8px !important;
+    }
+    [data-testid="baseButton-secondary"] * { color: #e2e8f0 !important; }
+
+    /* ── EXPANDERS ───────────────────────────────────────────────────────── */
     [data-testid="stExpander"] {
-        border: 1px solid #e2e8f0 !important;
-        border-radius: 12px !important;
-        overflow: hidden !important;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.04) !important;
+        background: #1e293b !important; border: 1px solid #334155 !important;
+        border-radius: 12px !important; overflow: hidden !important;
         margin-bottom: 4px !important;
     }
+    [data-testid="stExpander"] summary { background: #1e293b !important; }
+    [data-testid="stExpander"] summary:hover { background: #273549 !important; }
+    [data-testid="stExpander"] * { color: #f1f5f9 !important; }
 
-    /* ══ UPLOAD ZONE ══════════════════════════════════════════════════════ */
+    /* ── FILE UPLOADER ───────────────────────────────────────────────────── */
     [data-testid="stFileUploader"],
     [data-testid="stFileUploader"] > div,
-    [data-testid="stFileUploaderDropzone"] {
-        border: 2px dashed #475569 !important;
-        border-radius: 14px !important;
+    [data-testid="stFileUploaderDropzone"],
+    [data-testid="stFileUploaderDropzoneInstructions"] {
         background: #1e293b !important;
+        border-color: #475569 !important;
+        border-radius: 14px !important;
     }
-    [data-testid="stFileUploader"] > div:hover,
-    [data-testid="stFileUploaderDropzone"]:hover {
-        border-color: #3b82f6 !important;
-        background: #1e3a5f !important;
-    }
-    /* Force ALL text inside the uploader to be readable */
     [data-testid="stFileUploader"] *,
     [data-testid="stFileUploaderDropzone"] *,
-    [data-testid="stFileUploader"] p,
-    [data-testid="stFileUploader"] span,
-    [data-testid="stFileUploader"] small,
-    [data-testid="stFileUploader"] div,
-    [data-testid="stFileUploader"] label,
-    [data-testid="stFileUploader"] button {
+    [data-testid="stFileUploaderDropzoneInstructions"] * {
         color: #e2e8f0 !important;
     }
-    /* Browse files button inside uploader */
-    [data-testid="stFileUploader"] button {
-        background: #334155 !important;
-        border: 1px solid #475569 !important;
-        color: #e2e8f0 !important;
-        border-radius: 8px !important;
+    [data-testid="stFileUploader"] button,
+    [data-testid="stFileUploaderDropzone"] button {
+        background: #334155 !important; border: 1px solid #475569 !important;
+        color: #e2e8f0 !important; border-radius: 8px !important;
     }
 
-    /* ══ BORDERED CONTAINERS ══════════════════════════════════════════════ */
+    /* ── TEXT / TEXTAREA INPUTS ──────────────────────────────────────────── */
+    [data-testid="stTextInput"] input,
+    [data-testid="stTextArea"] textarea {
+        background: #1e293b !important; color: #f1f5f9 !important;
+        border: 1.5px solid #334155 !important; border-radius: 10px !important;
+    }
+    [data-testid="stTextInput"] input:focus,
+    [data-testid="stTextArea"] textarea:focus {
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 3px rgba(59,130,246,0.2) !important;
+    }
+
+    /* ── BORDERED CONTAINERS ─────────────────────────────────────────────── */
     [data-testid="stVerticalBlockBorderWrapper"] {
-        border-radius: 14px !important;
-        border: 1px solid #e2e8f0 !important;
-        box-shadow: 0 1px 6px rgba(0,0,0,0.04) !important;
-        padding: 4px 8px !important;
+        background: #1e293b !important; border: 1px solid #334155 !important;
+        border-radius: 14px !important; padding: 4px 8px !important;
     }
 
-    /* ══ PIPELINE BADGES ══════════════════════════════════════════════════ */
+    /* ── SPINNER ─────────────────────────────────────────────────────────── */
+    [data-testid="stSpinner"] *,
+    [data-testid="stSpinnerContainer"] * { color: #f1f5f9 !important; }
+
+    /* ── ALERTS ──────────────────────────────────────────────────────────── */
+    [data-testid="stAlert"] { border-radius: 10px !important; }
+    [data-testid="stAlert"] * { color: #f1f5f9 !important; }
+
+    /* ── PIPELINE BADGES ─────────────────────────────────────────────────── */
     .step-badge {
-        display: inline-block;
-        background: #eff6ff;
-        color: #1d4ed8 !important;
-        border: 1.5px solid #bfdbfe;
-        border-radius: 20px;
-        padding: 3px 11px;
-        font-size: 0.73rem;
-        font-family: 'Courier New', monospace;
-        font-weight: 700;
-        margin: 2px 1px;
+        display: inline-block; background: #1e3a5f; color: #93c5fd !important;
+        border: 1.5px solid #2563eb; border-radius: 20px;
+        padding: 3px 11px; font-size: 0.73rem;
+        font-family: 'Courier New', monospace; font-weight: 700; margin: 2px 1px;
     }
-    .step-arrow { color: #94a3b8 !important; font-size: 0.8rem; margin: 0 1px; vertical-align: middle; }
+    .step-arrow { color: #475569 !important; font-size: 0.8rem; margin: 0 1px; vertical-align: middle; }
 
-    /* ══ CHUNK CARDS ══════════════════════════════════════════════════════ */
+    /* ── CHUNK CARDS ─────────────────────────────────────────────────────── */
     .chunk-card {
-        border: 1px solid #e2e8f0;
-        border-radius: 10px;
-        padding: 12px 16px;
-        margin-bottom: 10px;
-        background: #ffffff;
-        color: #0f172a !important;
+        border: 1px solid #334155; border-radius: 10px;
+        padding: 12px 16px; margin-bottom: 10px;
+        background: #1e293b; color: #f1f5f9 !important;
     }
-    .chunk-card * { color: #0f172a !important; }
-    .chunk-card:hover { border-color: #bfdbfe; box-shadow: 0 2px 10px rgba(37,99,235,0.07); }
-    .chunk-meta { font-size: 0.73rem; color: #64748b !important; margin-bottom: 6px; font-weight: 500; }
+    .chunk-card * { color: #f1f5f9 !important; }
+    .chunk-card:hover { border-color: #3b82f6; box-shadow: 0 2px 10px rgba(59,130,246,0.15); }
+    .chunk-meta { font-size: 0.73rem; color: #94a3b8 !important; margin-bottom: 6px; font-weight: 500; }
 
-    /* ══ SECTION TREE ═════════════════════════════════════════════════════ */
-    .tree-node { margin-left: 1.2rem; border-left: 2px solid #e2e8f0; padding-left: 0.8rem; }
+    /* ── SECTION TREE ────────────────────────────────────────────────────── */
+    .tree-node { margin-left: 1.2rem; border-left: 2px solid #334155; padding-left: 0.8rem; }
 
-    /* ══ STRATEGY TAGS ════════════════════════════════════════════════════ */
+    /* ── STRATEGY TAGS ───────────────────────────────────────────────────── */
     .strategy-tag {
-        display: inline-block;
-        font-size: 0.67rem;
-        border-radius: 20px;
-        padding: 2px 9px;
-        margin-left: 6px;
-        font-weight: 700;
-        letter-spacing: 0.03em;
+        display: inline-block; font-size: 0.67rem; border-radius: 20px;
+        padding: 2px 9px; margin-left: 6px; font-weight: 700; letter-spacing: 0.03em;
     }
-    .recursive_512            { background: #dbeafe; color: #1e40af !important; }
-    .recursive_256_small_only { background: #ede9fe; color: #5b21b6 !important; }
-    .recursive_400_para       { background: #dcfce7; color: #166534 !important; }
-    .fallback_hard_split      { background: #fee2e2; color: #991b1b !important; }
+    .recursive_512            { background: #1e3a5f; color: #93c5fd !important; }
+    .recursive_256_small_only { background: #2e1d5e; color: #c4b5fd !important; }
+    .recursive_400_para       { background: #14372a; color: #6ee7b7 !important; }
+    .fallback_hard_split      { background: #3b1a1a; color: #fca5a5 !important; }
     </style>
     """,
     unsafe_allow_html=True,
 )
+
 
 # ---------------------------------------------------------------------------
 # Session state defaults
@@ -508,7 +480,7 @@ def _structure_sunburst(tree: list, doc_name: str, chunks: list | None = None) -
     fig = go.Figure(go.Sunburst(
         ids=ids, labels=labels, parents=parents, values=values,
         marker=dict(colors=colors, line=dict(color="#0f172a", width=1)),
-        branchvalues="total",
+        branchvalues="remainder",
         hovertemplate="<b>%{label}</b><br>Chunks: %{value}<extra></extra>",
         textfont=dict(size=11, color="#e2e8f0"),
         insidetextfont=dict(color="#e2e8f0"),
@@ -762,16 +734,18 @@ with tab_doc:
         m3.metric("Detected sections", len(structure_tree))
         m4.metric("Total words", f"{result['word_count']:,}")
 
-        # ---- Document Structure Map (top of results) ----
+        # ---- Document Structure Map ----
+        st.markdown("")
+        st.subheader("📊 Document Structure Map")
         fig_sun = _structure_sunburst(structure_tree, result["filename"], adaptive_chunks)
         if fig_sun is not None:
-            st.markdown("")
-            st.subheader("📊 Document Structure Map")
             st.caption(
                 "Sunburst of the detected section hierarchy. "
                 "Each sector = one section; size = adaptive chunk count. Hover for details."
             )
             st.plotly_chart(fig_sun, use_container_width=True, key="structure_map")
+        else:
+            st.caption("No section structure detected — document may lack headings.")
 
         st.markdown("")
 
@@ -869,17 +843,6 @@ with tab_doc:
                     f"{len(structure_tree)} top-level sections"
                 )
                 _render_structure_tree(structure_tree, ada_chunks_by_id, depth=0)
-
-        # ---- Document Structure Map (plotly sunburst) ----
-        fig_sun = _structure_sunburst(structure_tree, result["filename"])
-        if fig_sun is not None:
-            st.markdown("---")
-            st.subheader("📊 Document Structure Map")
-            st.caption(
-                "Each sector represents a section; size = number of adaptive chunks. "
-                "Hover for details."
-            )
-            st.plotly_chart(fig_sun, use_container_width=True)
 
 
 # ============================================================
