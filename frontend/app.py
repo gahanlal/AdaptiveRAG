@@ -144,17 +144,35 @@ st.markdown(
     }
 
     /* ══ UPLOAD ZONE ══════════════════════════════════════════════════════ */
-    [data-testid="stFileUploader"] > div {
+    [data-testid="stFileUploader"],
+    [data-testid="stFileUploader"] > div,
+    [data-testid="stFileUploaderDropzone"] {
         border: 2px dashed #475569 !important;
         border-radius: 14px !important;
         background: #1e293b !important;
     }
-    [data-testid="stFileUploader"] > div:hover {
+    [data-testid="stFileUploader"] > div:hover,
+    [data-testid="stFileUploaderDropzone"]:hover {
         border-color: #3b82f6 !important;
         background: #1e3a5f !important;
     }
-    [data-testid="stFileUploader"] * {
+    /* Force ALL text inside the uploader to be readable */
+    [data-testid="stFileUploader"] *,
+    [data-testid="stFileUploaderDropzone"] *,
+    [data-testid="stFileUploader"] p,
+    [data-testid="stFileUploader"] span,
+    [data-testid="stFileUploader"] small,
+    [data-testid="stFileUploader"] div,
+    [data-testid="stFileUploader"] label,
+    [data-testid="stFileUploader"] button {
         color: #e2e8f0 !important;
+    }
+    /* Browse files button inside uploader */
+    [data-testid="stFileUploader"] button {
+        background: #334155 !important;
+        border: 1px solid #475569 !important;
+        color: #e2e8f0 !important;
+        border-radius: 8px !important;
     }
 
     /* ══ BORDERED CONTAINERS ══════════════════════════════════════════════ */
