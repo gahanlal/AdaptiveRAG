@@ -30,37 +30,51 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-    /* ══ GLOBALS ══════════════════════════════════════════════════════════ */
-    [data-testid="stAppViewContainer"] > .main { background: #f8fafc; }
-    /* Force dark text everywhere so the light background is always readable */
-    [data-testid="stAppViewContainer"],
-    [data-testid="stAppViewContainer"] p,
-    [data-testid="stAppViewContainer"] li,
-    [data-testid="stAppViewContainer"] td,
-    [data-testid="stAppViewContainer"] th,
-    [data-testid="stAppViewContainer"] span,
-    [data-testid="stAppViewContainer"] label,
-    [data-testid="stAppViewContainer"] .stMarkdown,
-    [data-testid="stAppViewContainer"] [data-testid="stMarkdownContainer"] {
+    /* ══ CSS VARIABLES — override Streamlit theme at the root level ═══════ */
+    :root {
+        --text-color: #0f172a;
+        --background-color: #f8fafc;
+        --secondary-background-color: #f1f5f9;
+        --primary-color: #2563eb;
+    }
+
+    /* ══ MAIN APP — force light background + dark text unconditionally ════ */
+    .stApp {
+        background-color: #f8fafc !important;
         color: #0f172a !important;
     }
-    /* Keep sidebar text using its own colours (overridden below) */
-    [data-testid="stSidebar"],
-    [data-testid="stSidebar"] * { color: inherit; }
-    hr { border-color: #f1f5f9 !important; margin: 1.4rem 0 !important; }
-    [data-testid="stAlert"] { border-radius: 10px !important; }
+    /* Target every rendered text node in the main content area */
+    .stApp p,
+    .stApp span:not([data-testid*="Sidebar"] span),
+    .stApp label,
+    .stApp li,
+    .stApp td,
+    .stApp th,
+    .stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp h5, .stApp h6,
+    .stApp [data-testid="stMarkdownContainer"],
+    .stApp [data-testid="stMarkdownContainer"] *,
+    .stApp [data-testid="stText"],
+    .stApp [data-testid="stCaption"],
+    .stApp [data-testid="stSpinner"] p,
+    .stApp [data-testid="stSpinner"] span,
+    .stApp [data-testid="stSpinner"] div {
+        color: #0f172a !important;
+    }
 
-    /* ══ SIDEBAR ══════════════════════════════════════════════════════════ */
+    /* ══ SIDEBAR — dark background, light text (must come AFTER the above) */
     [data-testid="stSidebar"] {
         background: #0f172a !important;
         border-right: 1px solid #1e293b !important;
     }
-    [data-testid="stSidebar"] .stMarkdown p,
+    [data-testid="stSidebar"],
+    [data-testid="stSidebar"] p,
+    [data-testid="stSidebar"] span,
     [data-testid="stSidebar"] label,
-    [data-testid="stSidebar"] small { color: #94a3b8 !important; }
+    [data-testid="stSidebar"] li { color: #cbd5e1 !important; }
     [data-testid="stSidebar"] h1,
-    [data-testid="stSidebar"] h2,
-    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] { color: #f1f5f9 !important; }
+    [data-testid="stSidebar"] h2 { color: #f1f5f9 !important; }
+    [data-testid="stSidebar"] small,
+    [data-testid="stSidebar"] .stCaptionContainer { color: #64748b !important; }
     [data-testid="stSidebar"] hr { border-color: #1e293b !important; }
     [data-testid="stSidebar"] [data-testid="baseButton-secondary"] {
         background: #1e293b !important;
@@ -73,6 +87,9 @@ st.markdown(
         background: #334155 !important;
         color: #f1f5f9 !important;
     }
+
+    hr { border-color: #e2e8f0 !important; margin: 1.4rem 0 !important; }
+    [data-testid="stAlert"] { border-radius: 10px !important; }
 
     /* ══ TABS ═════════════════════════════════════════════════════════════ */
     [data-testid="stTabs"] [data-baseweb="tab-list"] {
@@ -92,31 +109,19 @@ st.markdown(
         border: none !important;
     }
     [data-testid="stTabs"] [aria-selected="true"] {
-        background: #f0f4ff !important;
+        background: #eff6ff !important;
         color: #1e3a8a !important;
         box-shadow: 0 1px 5px rgba(0,0,0,0.1) !important;
     }
 
     /* ══ METRICS ══════════════════════════════════════════════════════════ */
     div[data-testid="metric-container"] {
-        background: #f0f4ff !important;
-        border: 1px solid #e2e8f0 !important;
+        background: #eff6ff !important;
+        border: 1px solid #bfdbfe !important;
         border-radius: 14px !important;
         padding: 16px 20px !important;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.04) !important;
     }
-    div[data-testid="metric-container"] [data-testid="stMetricLabel"] p {
-        font-size: 0.7rem !important;
-        font-weight: 700 !important;
-        text-transform: uppercase !important;
-        letter-spacing: 0.07em !important;
-        color: #64748b !important;
-    }
-    div[data-testid="metric-container"] [data-testid="stMetricValue"] {
-        font-size: 1.55rem !important;
-        font-weight: 800 !important;
-        color: #0f172a !important;
-    }
+    div[data-testid="metric-container"] * { color: #0f172a !important; }
 
     /* ══ BUTTONS ══════════════════════════════════════════════════════════ */
     [data-testid="baseButton-primary"] {
@@ -124,65 +129,34 @@ st.markdown(
         border: none !important;
         border-radius: 9px !important;
         font-weight: 700 !important;
-        letter-spacing: 0.02em !important;
+        color: #ffffff !important;
         box-shadow: 0 2px 10px rgba(37,99,235,0.3) !important;
-        transition: box-shadow 0.15s, transform 0.15s !important;
     }
-    [data-testid="baseButton-primary"]:hover {
-        box-shadow: 0 4px 18px rgba(37,99,235,0.45) !important;
-        transform: translateY(-1px) !important;
-    }
+    [data-testid="baseButton-primary"] * { color: #ffffff !important; }
 
     /* ══ EXPANDERS ════════════════════════════════════════════════════════ */
     [data-testid="stExpander"] {
         border: 1px solid #e2e8f0 !important;
         border-radius: 12px !important;
         overflow: hidden !important;
-        background: #f8fafc !important;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.03) !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04) !important;
         margin-bottom: 4px !important;
     }
-    [data-testid="stExpander"] summary {
-        background: #f8fafc !important;
-        font-weight: 600 !important;
-        padding: 12px 16px !important;
-    }
-    [data-testid="stExpander"] summary:hover { background: #f1f5f9 !important; }
 
     /* ══ UPLOAD ZONE ══════════════════════════════════════════════════════ */
     [data-testid="stFileUploader"] > div {
         border: 2px dashed #cbd5e1 !important;
         border-radius: 14px !important;
-        background: #f8fafc !important;
-        transition: border-color 0.2s, background 0.2s !important;
     }
     [data-testid="stFileUploader"] > div:hover {
         border-color: #2563eb !important;
         background: #eff6ff !important;
     }
 
-    /* ══ TEXT INPUT ═══════════════════════════════════════════════════════ */
-    [data-testid="stTextInput"] input,
-    [data-testid="stTextArea"] textarea {
-        border-radius: 10px !important;
-        border: 1.5px solid #e2e8f0 !important;
-        font-size: 0.95rem !important;
-        padding: 10px 14px !important;
-        background: #f8fafc !important;
-        transition: border-color 0.15s, box-shadow 0.15s !important;
-    }
-    [data-testid="stTextInput"] input:focus,
-    [data-testid="stTextArea"] textarea:focus {
-        border-color: #2563eb !important;
-        box-shadow: 0 0 0 3px rgba(37,99,235,0.1) !important;
-        background: #f1f5f9 !important;
-    }
-
-    /* ══ BORDERED CONTAINERS (st.container border=True) ══════════════════ */
+    /* ══ BORDERED CONTAINERS ══════════════════════════════════════════════ */
     [data-testid="stVerticalBlockBorderWrapper"] {
         border-radius: 14px !important;
         border: 1px solid #e2e8f0 !important;
-        background: #f8fafc !important;
         box-shadow: 0 1px 6px rgba(0,0,0,0.04) !important;
         padding: 4px 8px !important;
     }
@@ -191,7 +165,7 @@ st.markdown(
     .step-badge {
         display: inline-block;
         background: #eff6ff;
-        color: #1d4ed8;
+        color: #1d4ed8 !important;
         border: 1.5px solid #bfdbfe;
         border-radius: 20px;
         padding: 3px 11px;
@@ -199,10 +173,8 @@ st.markdown(
         font-family: 'Courier New', monospace;
         font-weight: 700;
         margin: 2px 1px;
-        letter-spacing: 0.01em;
-        box-shadow: 0 1px 2px rgba(37,99,235,0.07);
     }
-    .step-arrow { color: #94a3b8; font-size: 0.8rem; margin: 0 1px; vertical-align: middle; }
+    .step-arrow { color: #94a3b8 !important; font-size: 0.8rem; margin: 0 1px; vertical-align: middle; }
 
     /* ══ CHUNK CARDS ══════════════════════════════════════════════════════ */
     .chunk-card {
@@ -210,14 +182,12 @@ st.markdown(
         border-radius: 10px;
         padding: 12px 16px;
         margin-bottom: 10px;
-        background: #f8fafc;
-        transition: border-color 0.15s, box-shadow 0.15s;
+        background: #ffffff;
+        color: #0f172a !important;
     }
-    .chunk-card:hover {
-        border-color: #bfdbfe;
-        box-shadow: 0 2px 10px rgba(37,99,235,0.07);
-    }
-    .chunk-meta { font-size: 0.73rem; color: #64748b; margin-bottom: 6px; font-weight: 500; }
+    .chunk-card * { color: #0f172a !important; }
+    .chunk-card:hover { border-color: #bfdbfe; box-shadow: 0 2px 10px rgba(37,99,235,0.07); }
+    .chunk-meta { font-size: 0.73rem; color: #64748b !important; margin-bottom: 6px; font-weight: 500; }
 
     /* ══ SECTION TREE ═════════════════════════════════════════════════════ */
     .tree-node { margin-left: 1.2rem; border-left: 2px solid #e2e8f0; padding-left: 0.8rem; }
@@ -232,10 +202,10 @@ st.markdown(
         font-weight: 700;
         letter-spacing: 0.03em;
     }
-    .recursive_512            { background: #dbeafe; color: #1e40af; }
-    .recursive_256_small_only { background: #ede9fe; color: #5b21b6; }
-    .recursive_400_para       { background: #dcfce7; color: #166534; }
-    .fallback_hard_split      { background: #fee2e2; color: #991b1b; }
+    .recursive_512            { background: #dbeafe; color: #1e40af !important; }
+    .recursive_256_small_only { background: #ede9fe; color: #5b21b6 !important; }
+    .recursive_400_para       { background: #dcfce7; color: #166534 !important; }
+    .fallback_hard_split      { background: #fee2e2; color: #991b1b !important; }
     </style>
     """,
     unsafe_allow_html=True,
@@ -649,7 +619,7 @@ tab_doc, tab_query = st.tabs(["📄 Document", "💬 Query"])
 # TAB 1 — Document upload + side-by-side comparison
 # ============================================================
 with tab_doc:
-    st.header("Upload or Paste a Document")
+    st.header("Upload a Document")
     st.caption(
         "Both pipelines process your document. "
         "Compare fixed chunking (Simple) vs. structure-aware chunking (Adaptive) side by side."
@@ -696,41 +666,26 @@ with tab_doc:
    different retriever is chosen
         """)
 
-    col_up, col_paste = st.columns([1, 1])
-
-    with col_up:
-        uploaded_files = st.file_uploader(
+    uploaded_files = st.file_uploader(
             "Upload PDF, DOCX, or TXT — multiple files allowed",
             type=["pdf", "docx", "txt"],
             accept_multiple_files=True,
             label_visibility="collapsed",
         )
 
-    with col_paste:
-        pasted_text = st.text_area(
-            "…or paste raw text here",
-            height=140,
-            placeholder="Paste document text here (optional, used if no file uploaded)…",
-        )
-
     process_btn = st.button("⚙️ Process Document", type="primary", width="stretch")
 
     if process_btn:
-        if not uploaded_files and not pasted_text.strip():
-            st.warning("Please upload a file or paste some text first.")
+        if not uploaded_files:
+            st.warning("Please upload a file first.")
         else:
             with st.spinner("Processing… (structural parsing + chunking + indexing)"):
                 try:
-                    if uploaded_files:
-                        request_files = [
-                            ("files", (f.name, f.getvalue(), f.type or "application/octet-stream"))
-                            for f in uploaded_files
-                        ]
-                        data = {}
-                    else:
-                        # Empty placeholder so FastAPI receives multipart; falls through to raw_text
-                        request_files = [("files", ("", b"", "text/plain"))]
-                        data = {"raw_text": pasted_text, "filename": "pasted_text.txt"}
+                    request_files = [
+                        ("files", (f.name, f.getvalue(), f.type or "application/octet-stream"))
+                        for f in uploaded_files
+                    ]
+                    data = {}
 
                     resp = requests.post(
                         f"{API_BASE}/ingest",

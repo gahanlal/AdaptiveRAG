@@ -2,3 +2,11 @@
 # Disable file watcher on Streamlit Cloud — prevents it from inspecting
 # all transformers submodules (some require torchvision which isn't installed).
 fileWatcherType = "none"
+
+[theme]
+base                     = "dark"
+primaryColor             = "#3b82f6"
+backgroundColor          = "#0f172a"
+secondaryBackgroundColor = "#1e293b"
+textColor                = "#e2e8f0"
+font                     = "sans serif"
