@@ -113,9 +113,9 @@ with st.sidebar:
             if r.ok:
                 st.success(f"API online — v{r.json().get('version', '?')}")
             else:
-                st.error(f"API returned {r.status_code}")
-        except Exception as e:
-            st.error(f"Cannot reach API: {e}")
+                st.warning("Backend is still starting up. Please wait a moment and try again.")
+        except Exception:
+            st.warning("Backend is still starting up. Please wait a moment and try again.")
 
 
 # ---------------------------------------------------------------------------
@@ -344,9 +344,9 @@ with tab_doc:
                             f"{result['char_count']:,} chars"
                         )
                     else:
-                        st.error(f"Ingest failed ({resp.status_code}): {resp.text}")
-                except Exception as e:
-                    st.error(f"Request failed: {e}")
+                        st.error("Processing failed. Please try again or use a different document.")
+                except Exception:
+                    st.error("Could not reach the backend. The service may still be starting — please wait a few seconds and try again.")
 
     # --- Display side-by-side comparison ---
     if st.session_state.ingest_result:
@@ -509,9 +509,9 @@ with tab_query:
                     if resp.ok:
                         st.session_state.query_result = resp.json()
                     else:
-                        st.error(f"Query failed ({resp.status_code}): {resp.text}")
-                except Exception as e:
-                    st.error(f"Request failed: {e}")
+                        st.error("Query failed. Please try rephrasing your question or re-uploading the document.")
+                except Exception:
+                    st.error("Could not reach the backend. The service may still be starting — please wait a few seconds and try again.")
 
         # --- Show results ---
         if st.session_state.query_result:
